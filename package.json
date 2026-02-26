@@ -22,7 +22,7 @@
 	"exports": {
 		"./biome": "./biome.json"
 	},
-	"dependencies": {
+	"devDependencies": {
 		"@biomejs/biome": "2.4.4"
 	},
 	"scripts": {
