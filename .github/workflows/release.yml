@@ -1,0 +1,68 @@
+#
+# GitHub Actions workflow.
+#
+# Releases the package to npm when a push into main is detected.
+# * Bump version number
+# * Release to NPM
+#
+
+name: 'Release Package'
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+jobs:
+
+    pr_checks:
+        uses: ./.github/workflows/pr.yml
+        secrets: inherit
+
+    release:
+        name: 'Release Package'
+        runs-on: ubuntu-latest
+        needs:
+            - pr_checks
+        permissions:
+            contents: write
+        steps:
+            -   name: 'Checkout'
+                uses: actions/checkout@v4
+                with:
+                    token: ${{ secrets.GH_CI_CD_RELEASE }}
+
+            -   name: 'Install Node.js'
+                uses: actions/setup-node@v4
+                with:
+                    node-version: latest
+
+            -   name: 'Install dependencies'
+                run: npm install
+                
+            -   run: git stash
+            -   run: git pull --force
+
+            -   name: 'Configure git to skip hooks for release'
+                run: git config core.hooksPath /dev/null
+
+            -   name: 'Version Bump'
+                uses: phips28/gh-action-bump-version@master
+                env:
+                    GITHUB_TOKEN: ${{ secrets.GH_CI_CD_RELEASE }}
+                with:
+                    major-wording: 'major,breaking'
+                    minor-wording: 'minor,feature,feat'
+                    patch-wording: 'patch,fixes,fix,misc,docs,refactor,style,test,build,ci,chore,revert,perf'    # Providing patch-wording will override commits
+                    commit-message: 'Release Package: Bump Version [skip ci]'
+                    skip-tag: true
+
+            -  name: 'Build'
+               run: npm run build
+               
+            -   name: 'Authenticate with NPM'
+                run: echo -e "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+
+            -   name: 'Publishing package'
+                run: npm publish --no-git-checks --access public

@@ -1,0 +1,46 @@
+#
+# GitHub Actions workflow.
+#
+# Perfoms the following actions on a pull request:
+# * Lint the code
+# * Run the tests
+# * Confirm the build runs
+#
+
+name: PR Checks
+
+on:
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+    workflow_call:
+
+jobs:
+    pr_checks:
+        name: 'Pull Request Package'
+        runs-on: ubuntu-latest
+        steps:
+
+            -   name: 'Checkout'
+                uses: actions/checkout@v4
+                with:
+                    token: ${{ secrets.GH_CI_CD_RELEASE }}
+
+            -   name: Install Node.js
+                uses: actions/setup-node@v4
+                with:
+                    node-version: latest
+
+            -   name: Install dependencies
+                run: npm i
+
+            -   name: Lint
+                run: npm run lint
+
+            # -   name: Build
+            #     run: npm run build
+
+            # -   name: Test
+            #     run: npm run test
+

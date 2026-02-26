@@ -1,0 +1,44 @@
+# Source files (we only want compiled output)
+src/
+
+# Development and CI/CD files
+.github/
+.husky/
+.vscode/
+.idea/
+
+# Configuration files
+tsconfig.json
+tsconfig.build.json
+jest.config.js
+jest.setup.js
+eslint.config.mjs
+commitlint.config.js
+.prettierrc
+.gitignore
+
+# Test files
+**/*.test.*
+**/*.spec.*
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.bak
+npm-debug.log*
+yarn-debug.log*
+
+# Environment
+.env*
+
+# Build artifacts that shouldn't be in package
+*.tsbuildinfo
+
+# OS specific
+.DS_Store
+
+# Keep these in the package:
+# dist/ (compiled output)
+# *.md (documentation)
+# package.json

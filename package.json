@@ -1,0 +1,31 @@
+{
+	"name": "@juicyllama/repo",
+	"version": "0.0.0",
+	"description": "A collection of utilities for working with repositories.",
+	"author": {
+		"name": "JuicyLlama Studio",
+		"email": "studio@juicyllama.com",
+		"url": "https://juicyllama.com"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/juicyllama/utils"
+	},
+	"bugs": "https://github.com/juicyllama/utils/issues",
+	"license": "BSD-4-Clause",
+	"readmeFilename": "README.md",
+	"type": "module",
+	"exports": {
+		"./biome": "./biome.json"
+	},
+	"dependencies": {
+		"@biomejs/biome": "2.4.4"
+	},
+	"scripts": {
+		"lint": "biome check . --write"
+	}
+}
