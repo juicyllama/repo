@@ -58,8 +58,8 @@ jobs:
                     commit-message: 'Release Package: Bump Version [skip ci]'
                     skip-tag: true
 
-            -  name: 'Build'
-               run: npm run build
+            # -  name: 'Build'
+            #    run: npm run build
                
             -   name: 'Authenticate with NPM'
                 run: echo -e "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
