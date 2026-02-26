@@ -13,9 +13,9 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/juicyllama/utils"
+		"url": "https://github.com/juicyllama/repo.git"
 	},
-	"bugs": "https://github.com/juicyllama/utils/issues",
+	"bugs": "https://github.com/juicyllama/repo/issues",
 	"license": "BSD-4-Clause",
 	"readmeFilename": "README.md",
 	"type": "module",
