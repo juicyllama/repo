@@ -23,7 +23,7 @@ jobs:
     release:
         name: 'Release Package'
         runs-on: ubuntu-latest
-        needs:
+        #needs:
             # - pr_checks
         permissions:
             contents: write
