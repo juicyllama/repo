@@ -20,15 +20,21 @@ npm install @juicyllama/repo
 
 We use [TurboRepo](https://turborepo.dev/) for handling full projects within a single monorepo. 
 
-```turbo.json
+On installation of @juicyllama/repo it will sync your shared turbo file and generate the turbo.json, this is due to limitations with TurboRepos extends functionality. 
+
+If you need to make changes or extend this, simply update `turbo.shared.json` and run `node ./node_modules/@juicyllama/repo/dist/turbo/sync-turbo.mjs`
+
+### Root file
+
+```turbo.shared.json
 {
-	"$schema": "https://turbo.build/schema.json",
-	"extends": ["@juicyllama/repo/turbo"],
-	"globalEnv": [
-		...
-	]
+  "extends": ["@juicyllama/repo/turbo"],
+  "globalEnv": [
+    ...
+  ]
 }
 ```
+
 
 ## Linting
 
@@ -50,14 +56,40 @@ You can extend the pre-build typescript configurations here:
 
 ### NestJs
 
+```tsconfig.json
+{
+	"extends": "@juicyllama/repo/ts-nest"
+}
+```
 
 ### Next.Js
 
+```tsconfig.json
+{
+	"extends": "@juicyllama/repo/ts-next"
+}
+```
 
 ### Nuxt
 
+```tsconfig.json
+{
+	"extends": "@juicyllama/repo/ts-nuxt"
+}
+```
 
 ### React
 
+```tsconfig.json
+{
+	"extends": "@juicyllama/repo/ts-react"
+}
+```
 
 ### Base
+
+```tsconfig.json
+{
+	"extends": "@juicyllama/repo/ts-base"
+}
+```
