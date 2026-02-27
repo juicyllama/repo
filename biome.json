@@ -29,6 +29,9 @@
 			"arrowParentheses": "asNeeded",
 			"bracketSpacing": true,
 			"bracketSameLine": true
+		},
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
 		}
 	},
 	"css": {
