@@ -1,6 +1,6 @@
 {
 	"name": "@juicyllama/repo",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "A collection of utilities for working with repositories.",
 	"author": {
 		"name": "JuicyLlama Studio",
@@ -35,6 +35,6 @@
 	},
 	"scripts": {
 		"lint": "biome check . --write",
-        "postinstall": "node ./turbo/sync-turbo.mjs"
+		"postinstall": "node ./turbo/sync-turbo.mjs"
 	}
 }
