@@ -25,7 +25,11 @@
 		"./jest-base": "./jest-config/base.ts",
 		"./jest-nest": "./jest-config/nest.ts",
 		"./jest-next": "./jest-config/next.ts",
-		"./ai-development": "./agentic/DEVELOPMENT.md"
+		"./typescript/base.json": "./typescript/base.json",
+		"./typescript/nestjs.json": "./typescript/nestjs.json",
+		"./typescript/nextjs.json": "./typescript/nextjs.json",
+		"./typescript/nuxt.json": "./typescript/nuxt.json",
+		"./typescript/react-library.json": "./typescript/react-library.json"
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4",
@@ -37,6 +41,6 @@
 		"typescript": "^5.9.3"
 	},
 	"scripts": {
-		"postinstall": "node ./turbo/sync-turbo.mjs"
+		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs"
 	}
 }
