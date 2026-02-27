@@ -20,6 +20,16 @@ npm install @juicyllama/repo
 
 We use [TurboRepo](https://turborepo.dev/) for handling full projects within a single monorepo. 
 
+```turbo.json
+{
+	"$schema": "https://turbo.build/schema.json",
+	"extends": ["@juicyllama/repo/turbo"],
+	"globalEnv": [
+		...
+	]
+}
+```
+
 ## Linting
 
 Were using biomejs for linting and formatting.
@@ -32,3 +42,22 @@ Were using biomejs for linting and formatting.
 ```
 
 [Read More](https://biomejs.dev/guides/getting-started/)
+
+
+## TypeScript
+
+You can extend the pre-build typescript configurations here:
+
+### NestJs
+
+
+### Next.Js
+
+
+### Nuxt
+
+
+### React
+
+
+### Base
