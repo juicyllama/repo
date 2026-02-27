@@ -22,11 +22,6 @@
 	"exports": {
 		"./biome": "./biome.json",
 		"./turbo": "./turbo.json",
-		"./ts-base": "./typescript-config/base.json",
-		"./ts-nest": "./typescript-config/nestjs.json",
-		"./ts-next": "./typescript-config/nextjs.json",
-		"./ts-nuxt": "./typescript-config/nuxt.json",
-		"./ts-react": "./typescript-config/react-library.json",
 		"./jest-base": "./jest-config/base.ts",
 		"./jest-nest": "./jest-config/nest.ts",
 		"./jest-next": "./jest-config/next.ts",

@@ -58,7 +58,7 @@ You can extend the pre-build typescript configurations here:
 
 ```tsconfig.json
 {
-	"extends": "@juicyllama/repo/ts-nest"
+	"extends": "@juicyllama/repo/typescript/nestjs.json"
 }
 ```
 
@@ -66,7 +66,7 @@ You can extend the pre-build typescript configurations here:
 
 ```tsconfig.json
 {
-	"extends": "@juicyllama/repo/ts-next"
+	"extends": "@juicyllama/repo/typescript/nextjs.json"
 }
 ```
 
@@ -74,7 +74,7 @@ You can extend the pre-build typescript configurations here:
 
 ```tsconfig.json
 {
-	"extends": "@juicyllama/repo/ts-nuxt"
+	"extends": "@juicyllama/repo/typescript/nuxt.json"
 }
 ```
 
@@ -82,7 +82,7 @@ You can extend the pre-build typescript configurations here:
 
 ```tsconfig.json
 {
-	"extends": "@juicyllama/repo/ts-react"
+	"extends": "@juicyllama/repo/typescript/react-library.json"
 }
 ```
 
@@ -90,7 +90,7 @@ You can extend the pre-build typescript configurations here:
 
 ```tsconfig.json
 {
-	"extends": "@juicyllama/repo/ts-base"
+	"extends": "@juicyllama/repo/typescript/base.json"
 }
 ```
 
@@ -98,9 +98,8 @@ You can extend the pre-build typescript configurations here:
 
 Shared Jest configs are available:
 
-```jest.config.mjs
-import { config } from '@juicyllama/repo/jest-base'
-export default config
+```jest.config.cjs
+module.exports = require('@juicyllama/repo/jest-nest').nestConfig
 ```
 
 NestJS config:

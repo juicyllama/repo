@@ -18,5 +18,8 @@
 		"strict": true,
 		"target": "ES2022",
 		"useUnknownInCatchVariables": true
-	}
+	},
+	 "exclude": [
+		"node_modules"
+	]
 }
