@@ -16,6 +16,10 @@ A package for repo configuration helpers
 npm install @juicyllama/repo
 ```
 
+## Turbo
+
+We use [TurboRepo](https://turborepo.dev/) for handling full projects within a single monorepo. 
+
 ## Linting
 
 Were using biomejs for linting and formatting.
@@ -24,6 +28,7 @@ Were using biomejs for linting and formatting.
 ```biome.json
 {
   "extends": ["@juicyllama/repo/biome"]
-}```
+}
+```
 
 [Read More](https://biomejs.dev/guides/getting-started/)
