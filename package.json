@@ -26,7 +26,8 @@
 		"./ts-nest": "./typescript-config/nestjs.json",
 		"./ts-next": "./typescript-config/nextjs.json",
 		"./ts-nuxt": "./typescript-config/nuxt.json",
-		"./ts-react": "./typescript-config/react-library.json"
+		"./ts-react": "./typescript-config/react-library.json",
+        "./ai-development": "./agentic/DEVELOPMENT.md"
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4",
