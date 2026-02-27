@@ -1,6 +1,6 @@
 {
 	"name": "@juicyllama/repo",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "A collection of utilities for working with repositories.",
 	"author": {
 		"name": "JuicyLlama Studio",
@@ -22,16 +22,16 @@
 	"exports": {
 		"./biome": "./biome.json",
 		"./turbo": "./turbo.json",
-        "./ts-base": "./typescript-config/base.json",
-        "./ts-nest": "./typescript-config/nestjs.json",
-        "./ts-next": "./typescript-config/nextjs.json",
-        "./ts-nuxt": "./typescript-config/nuxt.json",
-        "./ts-react": "./typescript-config/react-library.json"
+		"./ts-base": "./typescript-config/base.json",
+		"./ts-nest": "./typescript-config/nestjs.json",
+		"./ts-next": "./typescript-config/nextjs.json",
+		"./ts-nuxt": "./typescript-config/nuxt.json",
+		"./ts-react": "./typescript-config/react-library.json"
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4",
 		"turbo": "^2.8.10",
-        "typescript": "^5.9.3"
+		"typescript": "^5.9.3"
 	},
 	"scripts": {
 		"lint": "biome check . --write"
