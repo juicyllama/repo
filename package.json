@@ -1,6 +1,6 @@
 {
 	"name": "@juicyllama/repo",
-	"version": "0.3.2",
+	"version": "0.4.0",
 	"description": "A collection of utilities for working with repositories.",
 	"author": {
 		"name": "JuicyLlama Studio",
@@ -27,7 +27,7 @@
 		"./ts-next": "./typescript-config/nextjs.json",
 		"./ts-nuxt": "./typescript-config/nuxt.json",
 		"./ts-react": "./typescript-config/react-library.json",
-        "./ai-development": "./agentic/DEVELOPMENT.md"
+		"./ai-development": "./agentic/DEVELOPMENT.md"
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4",
