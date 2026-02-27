@@ -16,8 +16,6 @@ Once you are finished and you have passed the [Let's Go!](#lets-go) checks, you 
 
 We want 100% test code coverage on our application to prevent bugs making their way into our production environments. You should always build tests for any new features or to validate bug fixes.
 
-See [full testing instructions here](./TESTING.md).
-
 ## Don't Repeat Yourself (DRY)
 
 We follow DRY development methodology to avoid code duplication and bloat. Try where possible to abstract repeatable code.
