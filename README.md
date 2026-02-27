@@ -93,3 +93,39 @@ You can extend the pre-build typescript configurations here:
 	"extends": "@juicyllama/repo/ts-base"
 }
 ```
+
+## Jest
+
+Shared Jest configs are available:
+
+```ts
+import { config } from '@juicyllama/repo/jest-base'
+export default config
+```
+
+NestJS config:
+
+```ts
+import { nestConfig } from '@juicyllama/repo/jest-nest'
+export default nestConfig
+```
+
+Next.js config:
+
+```js
+import { nextConfig } from '@juicyllama/repo/jest-next'
+export default nextConfig
+```
+
+
+## IDE
+
+### VS Code
+
+A suggested vs code settings file which complements this set up can be found in `./.vs-code/settings.json`
+
+## Testing
+
+### Jest
+
+

@@ -27,10 +27,16 @@
 		"./ts-next": "./typescript-config/nextjs.json",
 		"./ts-nuxt": "./typescript-config/nuxt.json",
 		"./ts-react": "./typescript-config/react-library.json",
+		"./jest-base": "./jest-config/base.ts",
+		"./jest-nest": "./jest-config/nest.ts",
+		"./jest-next": "./jest-config/next.ts",
 		"./ai-development": "./agentic/DEVELOPMENT.md"
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4",
+		"@jest/globals": "^30.2.0",
+		"@jest/types": "^30.2.0",
+		"jest": "^30.2.0",
 		"turbo": "^2.8.10",
 		"typescript": "^5.9.3"
 	},

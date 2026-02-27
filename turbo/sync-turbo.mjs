@@ -1,5 +1,5 @@
-import { readFile, writeFile, access } from 'node:fs/promises'
-import { resolve, dirname } from 'node:path'
+import { access, readFile, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
@@ -30,8 +30,7 @@ const exists = async path => {
 
 if (!(await exists(sharedPath))) {
 	console.warn(
-		`Skipping turbo.json generation: missing ${sharedPath}. ` +
-			'Create turbo.shared.json in your project root.',
+		`Skipping turbo.json generation: missing ${sharedPath}. ` + 'Create turbo.shared.json in your project root.',
 	)
 	process.exit(0)
 }
@@ -40,9 +39,7 @@ let shared
 try {
 	shared = await readJson(sharedPath)
 } catch (error) {
-	console.error(
-		`Failed to read ${sharedPath}. Ensure it contains valid JSON.`,
-	)
+	console.error(`Failed to read ${sharedPath}. Ensure it contains valid JSON.`)
 	console.error(error instanceof Error ? error.message : error)
 	process.exit(1)
 }
@@ -59,28 +56,20 @@ let baseStatus = 'not-requested'
 if (shouldLoadBase) {
 	if (!(await exists(basePath))) {
 		baseStatus = 'missing'
-		console.warn(
-			`Base turbo.json not found at ${basePath}. ` +
-				'Continuing with turbo.shared.json only.',
-		)
+		console.warn(`Base turbo.json not found at ${basePath}. ` + 'Continuing with turbo.shared.json only.')
 	} else {
 		try {
 			base = await readJson(basePath)
 			baseStatus = 'merged'
 		} catch (error) {
 			baseStatus = 'invalid'
-			console.error(
-				`Failed to read base turbo.json at ${basePath}. ` +
-					'Continuing with turbo.shared.json only.',
-			)
+			console.error(`Failed to read base turbo.json at ${basePath}. ` + 'Continuing with turbo.shared.json only.')
 			console.error(error instanceof Error ? error.message : error)
 		}
 	}
 }
 
-const mergedGlobalEnv = Array.from(
-	new Set([...(base.globalEnv ?? []), ...(shared.globalEnv ?? [])]),
-)
+const mergedGlobalEnv = Array.from(new Set([...(base.globalEnv ?? []), ...(shared.globalEnv ?? [])]))
 
 const mergedTasks = {
 	...(base.tasks ?? {}),
@@ -98,6 +87,4 @@ delete merged.extends
 
 const output = `${JSON.stringify(merged, null, 2)}\n`
 await writeFile(outputPath, output)
-console.log(
-	`Generated turbo.json at ${outputPath}. Base merge: ${baseStatus}.`,
-)
+console.log(`Generated turbo.json at ${outputPath}. Base merge: ${baseStatus}.`)
