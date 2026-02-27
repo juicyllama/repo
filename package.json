@@ -1,6 +1,6 @@
 {
 	"name": "@juicyllama/repo",
-	"version": "0.0.4",
+	"version": "0.1.0",
 	"description": "A collection of utilities for working with repositories.",
 	"author": {
 		"name": "JuicyLlama Studio",
@@ -21,7 +21,7 @@
 	"type": "module",
 	"exports": {
 		"./biome": "./biome.json",
-        "./turbo": "./turbo.json"
+		"./turbo": "./turbo.json"
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4"
