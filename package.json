@@ -20,7 +20,8 @@
 	"readmeFilename": "README.md",
 	"type": "module",
 	"exports": {
-		"./biome": "./biome.json"
+		"./biome": "./biome.json",
+        "./turbo": "./turbo.json"
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4"
