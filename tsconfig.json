@@ -1,8 +1,10 @@
 {
-    "extends": "./typescript/base.json",
-    	"compilerOptions": {
-        "rootDir": "./",
+	"extends": "./typescript/base.json",
+	"compilerOptions": {
+		"rootDir": "./",
 		"outDir": "./dist",
+		"module": "ES2022",
+		"moduleResolution": "Bundler",
 		"sourceMap": true,
 		"inlineSources": true,
 		"sourceRoot": "/"
