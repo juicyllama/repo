@@ -98,21 +98,25 @@ You can extend the pre-build typescript configurations here:
 
 Shared Jest configs are available:
 
-```jest.config.cjs
-module.exports = require('@juicyllama/repo/jest-nest').nestConfig
+```jest.config.ts
+import { Config } from '@juicyllama/repo/jest/base'
+
+export default Config
 ```
 
 NestJS config:
 
-```jest.config.mjs
-import { nestConfig } from '@juicyllama/repo/jest-nest'
+```jest.config.ts
+import { nestConfig } from '@juicyllama/repo/jest/nest'
+
 export default nestConfig
 ```
 
 Next.js config:
 
-```jest.config.mjs
-import { nextConfig } from '@juicyllama/repo/jest-next'
+```jest.config.ts
+import { nextConfig } from '@juicyllama/repo/jest/next'
+
 export default nextConfig
 ```
 
