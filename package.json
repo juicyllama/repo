@@ -32,20 +32,20 @@
 		"./typescript/nuxt.json": "./typescript/nuxt.json",
 		"./typescript/react-library.json": "./typescript/react-library.json",
 		"./jest/base": {
-            "import": "./dist/jest/base.js",
-            "require": "./dist/jest/base.js",
-            "types": "./dist/jest/base.d.ts"
-        },
-        "./jest/nest": {
-            "import": "./dist/jest/nest.js",
-            "require": "./dist/jest/nest.js",
-            "types": "./dist/jest/nest.d.ts"
-        },
-        "./jest/next": {
-            "import": "./dist/jest/next.js",
-            "require": "./dist/jest/next.js",
-            "types": "./dist/jest/next.d.ts"
-        }
+			"import": "./dist/jest/base.js",
+			"require": "./dist/jest/base.js",
+			"types": "./dist/jest/base.d.ts"
+		},
+		"./jest/nest": {
+			"import": "./dist/jest/nest.js",
+			"require": "./dist/jest/nest.js",
+			"types": "./dist/jest/nest.d.ts"
+		},
+		"./jest/next": {
+			"import": "./dist/jest/next.js",
+			"require": "./dist/jest/next.js",
+			"types": "./dist/jest/next.d.ts"
+		}
 	},
 	"dependencies": {
 		"@biomejs/biome": "2.4.4",
@@ -56,10 +56,7 @@
 		"turbo": "^2.8.10",
 		"typescript": "^5.9.3"
 	},
-	"peerDependencies": {
-		"next": ">=13"
-	},
-	"peerDependenciesMeta": {
-		"next": { "optional": true }
+	"devDependencies": {
+		"next": "^16.1.6"
 	}
 }
