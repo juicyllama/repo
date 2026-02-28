@@ -26,7 +26,8 @@ If you need to make changes or extend this, simply update `turbo.shared.json` an
 
 ### Root file
 
-```turbo.shared.json
+```ts
+//turbo.shared.json
 {
   "extends": ["@juicyllama/repo/turbo"],
   "globalEnv": [
@@ -41,7 +42,8 @@ If you need to make changes or extend this, simply update `turbo.shared.json` an
 Were using biomejs for linting and formatting.
 
 
-```biome.json
+```ts
+//biome.json
 {
   "extends": ["@juicyllama/repo/biome"]
 }
@@ -56,7 +58,8 @@ You can extend the pre-build typescript configurations here:
 
 ### NestJs
 
-```tsconfig.json
+```ts
+//tsconfig.json
 {
 	"extends": "@juicyllama/repo/typescript/nestjs.json"
 }
@@ -64,7 +67,8 @@ You can extend the pre-build typescript configurations here:
 
 ### Next.Js
 
-```tsconfig.json
+```ts
+//tsconfig.json
 {
 	"extends": "@juicyllama/repo/typescript/nextjs.json"
 }
@@ -72,7 +76,8 @@ You can extend the pre-build typescript configurations here:
 
 ### Nuxt
 
-```tsconfig.json
+```ts
+//tsconfig.json
 {
 	"extends": "@juicyllama/repo/typescript/nuxt.json"
 }
@@ -80,7 +85,8 @@ You can extend the pre-build typescript configurations here:
 
 ### React
 
-```tsconfig.json
+```ts
+//tsconfig.json
 {
 	"extends": "@juicyllama/repo/typescript/react-library.json"
 }
@@ -88,7 +94,8 @@ You can extend the pre-build typescript configurations here:
 
 ### Base
 
-```tsconfig.json
+```ts
+//tsconfig.json
 {
 	"extends": "@juicyllama/repo/typescript/base.json"
 }
@@ -98,7 +105,8 @@ You can extend the pre-build typescript configurations here:
 
 Shared Jest configs are available:
 
-```jest.config.ts
+```ts
+//jest.config.ts
 import { Config } from '@juicyllama/repo/jest/base'
 
 export default Config
@@ -106,7 +114,8 @@ export default Config
 
 NestJS config:
 
-```jest.config.ts
+```ts
+//jest.config.ts
 import { nestConfig } from '@juicyllama/repo/jest/nest'
 
 export default nestConfig
@@ -114,7 +123,8 @@ export default nestConfig
 
 Next.js config:
 
-```jest.config.ts
+```ts
+//jest.config.ts
 import { nextConfig } from '@juicyllama/repo/jest/next'
 
 export default nextConfig
@@ -126,9 +136,3 @@ export default nextConfig
 ### VS Code
 
 A suggested vs code settings file which complements this set up can be found in `./.vs-code/settings.json`
-
-## Testing
-
-### Jest
-
-
