@@ -19,6 +19,10 @@
 	"license": "BSD-4-Clause",
 	"readmeFilename": "README.md",
 	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs"
+	},
 	"exports": {
 		"./biome": "./biome.json",
 		"./turbo": "./turbo.json",
@@ -52,8 +56,10 @@
 		"turbo": "^2.8.10",
 		"typescript": "^5.9.3"
 	},
-	"scripts": {
-		"build": "tsc",
-		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs"
+	"peerDependencies": {
+		"next": ">=13"
+	},
+	"peerDependenciesMeta": {
+		"next": { "optional": true }
 	}
 }
