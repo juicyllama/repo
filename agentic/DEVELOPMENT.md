@@ -6,13 +6,13 @@ We follow a strict development lifecycle.
 2. We follow [TDD](#test-driven-development) and [DRY](#dont-repeat-yourself-dry) principles
 3. Before pushing code we always run [Let's Go!](#lets-go) to ensure all formatting, linting, building and testing works. Any issues should be fixed.
 
-## Truck Development
+## Trunk Development
 
 All development should happen on a new git branch.
 
 Once you are finished and you have passed the [Let's Go!](#lets-go) checks, you should create a PR request on github.
 
-## Test Driven Development (TDD)
+## Test-Driven Development (TDD)
 
 We want 100% test code coverage on our application to prevent bugs making their way into our production environments. You should always build tests for any new features or to validate bug fixes.
 
