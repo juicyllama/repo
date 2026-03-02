@@ -21,7 +21,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsc",
-		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs"
+		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs && node ./.husky/sync.mjs"
 	},
 	"exports": {
 		"./biome": "./biome.json",
@@ -52,6 +52,7 @@
 		"@jest/globals": "^30.2.0",
 		"@jest/types": "^30.2.0",
 		"@playwright/test": "^1.58.2",
+		"husky": "^9.1.7",
 		"jest": "^30.2.0",
 		"turbo": "^2.8.10",
 		"typescript": "^5.9.3"

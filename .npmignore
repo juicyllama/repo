@@ -3,7 +3,6 @@ src/
 
 # Development and CI/CD files
 .github/
-.husky/
 .vscode/
 .idea/
 

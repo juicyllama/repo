@@ -130,6 +130,9 @@ import { nextConfig } from '@juicyllama/repo/jest/next'
 export default nextConfig
 ```
 
+## Husky
+
+The package will copy over .husky folder if it does not already exist with a recommended default setup.
 
 ## IDE
 
