@@ -1,4 +1,4 @@
-import { access, cp } from 'node:fs/promises'
+import { access, copyFile, mkdir, readdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -35,5 +35,22 @@ if (await exists(outputPath)) {
 	process.exit(0)
 }
 
-await cp(sourcePath, outputPath, { recursive: true })
-console.log(`Copied .husky to ${outputPath}.`)
+const copyDir = async (src, dest) => {
+	await mkdir(dest, { recursive: true })
+	const entries = await readdir(src, { withFileTypes: true })
+	await Promise.all(
+		entries.map(async entry => {
+			if (entry.name === 'sync.mjs') return
+			const srcPath = resolve(src, entry.name)
+			const destPath = resolve(dest, entry.name)
+			if (entry.isDirectory()) {
+				await copyDir(srcPath, destPath)
+			} else if (entry.isFile()) {
+				await copyFile(srcPath, destPath)
+			}
+		}),
+	)
+}
+
+await copyDir(sourcePath, outputPath)
+console.log(`Copied .husky to ${outputPath} (excluding sync.mjs).`)
