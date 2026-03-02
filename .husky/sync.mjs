@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
-const packageRoot = resolve(scriptDir)
+const packageRoot = resolve(scriptDir, '..')
 const initCwd = process.env.INIT_CWD
 const targetRoot = initCwd ? resolve(initCwd) : process.cwd()
 
