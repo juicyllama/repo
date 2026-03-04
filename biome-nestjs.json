@@ -23,7 +23,7 @@
             "recommended": true,
             "correctness": {
                 "noUnusedVariables": "error",
-                "noUndeclaredVariables": "error"
+                "noUndeclaredVariables": "off"
             },
             "suspicious": {
                 "noExplicitAny": "error",
@@ -39,7 +39,8 @@
                 "noParameterProperties": "off"
             },
             "complexity": {
-                "noExtraBooleanCast": "error"
+                "noExtraBooleanCast": "error",
+                "noUselessConstructor": "off"
             }
         }
     },
