@@ -49,7 +49,7 @@
             "quoteStyle": "single",
             "trailingCommas": "all",
             "lineWidth": 120,
-            "semicolons": "always",
+            "semicolons": "asNeeded",
             "arrowParentheses": "asNeeded",
             "bracketSpacing": true,
             "bracketSameLine": true
