@@ -1,1 +1,1 @@
-turbo run lint && turbo run build && turbo run test
+turbo run lint:fix && turbo run build && turbo run test
