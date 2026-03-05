@@ -36,7 +36,8 @@
                 "useConst": "error",
                 "noNonNullAssertion": "error",
                 "useExportType": "error",
-                "noParameterProperties": "off"
+                "noParameterProperties": "off",
+                "useImportType": "off"
             },
             "complexity": {
                 "noExtraBooleanCast": "error",
