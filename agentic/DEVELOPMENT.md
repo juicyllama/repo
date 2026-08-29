@@ -3,7 +3,7 @@
 We follow a strict development lifecycle.
 
 1. Always follow [Trunk development](#trunk-development)
-2. We follow [TDD](#test-driven-development) and [DRY](#dont-repeat-yourself-dry) principles
+2. We follow [TDD](#test-driven-development-tdd) and [DRY](#dont-repeat-yourself-dry) principles
 3. Before pushing code we always run [Let's Go!](#lets-go) to ensure all formatting, linting, building and testing works. Any issues should be fixed.
 
 ## Trunk Development
@@ -33,6 +33,6 @@ Beyond what Biome can check for you:
 
 ## Let's Go!
 
-ALWAYS Run `npm run go` before any commit/push to make sure all changes pass the linting, building and testing checks.
+ALWAYS run the repo's `go` script (`npm run go`, or `pnpm go` in pnpm repos) before any commit/push to make sure all changes pass the linting, building and testing checks.
 
 Fix any errors found.
