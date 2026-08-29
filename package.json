@@ -1,70 +1,73 @@
 {
-    "name": "@juicyllama/repo",
-    "version": "0.9.5",
-    "description": "A collection of utilities for working with repositories.",
-    "author": {
-        "name": "JuicyLlama Studio",
-        "email": "studio@juicyllama.com",
-        "url": "https://juicyllama.com"
-    },
-    "publishConfig": {
-        "access": "public",
-        "registry": "https://registry.npmjs.org/"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/juicyllama/repo.git"
-    },
-    "bugs": "https://github.com/juicyllama/repo/issues",
-    "license": "BSD-4-Clause",
-    "readmeFilename": "README.md",
-    "type": "module",
-    "scripts": {
-        "build": "tsc",
-        "postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs && node ./.husky/sync.mjs"
-    },
-    "exports": {
-        "./biome": "./biome.json",
-        "./biome-nestjs": "./biome-nestjs.json",
-        "./turbo": "./turbo.json",
-        "./typescript/base.json": "./typescript/base.json",
-        "./typescript/nestjs.json": "./typescript/nestjs.json",
-        "./typescript/nextjs.json": "./typescript/nextjs.json",
-        "./typescript/nuxt.json": "./typescript/nuxt.json",
-        "./typescript/react-library.json": "./typescript/react-library.json",
-        "./jest/base": {
-            "import": "./dist/jest/base.js",
-            "require": "./dist/jest/base.js",
-            "types": "./dist/jest/base.d.ts"
-        },
-        "./jest/nest": {
-            "import": "./dist/jest/nest.js",
-            "require": "./dist/jest/nest.js",
-            "types": "./dist/jest/nest.d.ts"
-        },
-        "./jest/next": {
-            "import": "./dist/jest/next.js",
-            "require": "./dist/jest/next.js",
-            "types": "./dist/jest/next.d.ts"
-        }
-    },
-    "dependencies": {
-        "@biomejs/biome": "2.5.1",
-        "@jest/globals": "^30.4.1",
-        "@jest/types": "^30.4.1",
-        "@playwright/test": "^1.61.0",
-        "@types/express": "^5.0.6",
-        "@types/node": "^26.0.0",
-        "husky": "^9.1.7",
-        "jest": "^30.4.2",
-        "ts-jest": "^29.4.11",
-        "ts-loader": "^9.6.2",
-        "ts-node": "^10.9.2",
-        "tsconfig-paths": "^4.2.0",
-        "turbo": "^2.9.18",
-        "typescript": "^6.0.3"
-    },
-    "devDependencies": {
-        "next": "^16.2.9"
-    }
+	"name": "@juicyllama/repo",
+	"version": "0.9.5",
+	"description": "A collection of utilities for working with repositories.",
+	"author": {
+		"name": "JuicyLlama Studio",
+		"email": "studio@juicyllama.com",
+		"url": "https://juicyllama.com"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/juicyllama/repo.git"
+	},
+	"bugs": "https://github.com/juicyllama/repo/issues",
+	"license": "BSD-4-Clause",
+	"readmeFilename": "README.md",
+	"type": "module",
+	"scripts": {
+		"build": "tsc",
+		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs && node ./.husky/sync.mjs"
+	},
+	"exports": {
+		"./biome": "./biome.json",
+		"./biome-nestjs": "./biome-nestjs.json",
+		"./turbo": "./turbo.json",
+		"./typescript/base.json": "./typescript/base.json",
+		"./typescript/nestjs.json": "./typescript/nestjs.json",
+		"./typescript/nextjs.json": "./typescript/nextjs.json",
+		"./typescript/nuxt.json": "./typescript/nuxt.json",
+		"./typescript/react-library.json": "./typescript/react-library.json",
+		"./jest/base": {
+			"import": "./dist/jest/base.js",
+			"require": "./dist/jest/base.js",
+			"types": "./dist/jest/base.d.ts"
+		},
+		"./jest/nest": {
+			"import": "./dist/jest/nest.js",
+			"require": "./dist/jest/nest.js",
+			"types": "./dist/jest/nest.d.ts"
+		},
+		"./jest/next": {
+			"import": "./dist/jest/next.js",
+			"require": "./dist/jest/next.js",
+			"types": "./dist/jest/next.d.ts"
+		}
+	},
+	"dependencies": {
+		"@jest/globals": "^30.4.1",
+		"@jest/types": "^30.4.1",
+		"@playwright/test": "^1.61.0",
+		"@types/express": "^5.0.6",
+		"@types/node": "^26.0.0",
+		"husky": "^9.1.7",
+		"jest": "^30.4.2",
+		"ts-jest": "^29.4.11",
+		"ts-loader": "^9.6.2",
+		"ts-node": "^10.9.2",
+		"tsconfig-paths": "^4.2.0",
+		"turbo": "^2.9.18",
+		"typescript": "^6.0.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.10",
+		"next": "^16.2.9"
+	},
+	"peerDependencies": {
+		"@biomejs/biome": "^2.5.10"
+	}
 }

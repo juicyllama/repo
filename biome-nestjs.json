@@ -1,70 +1,196 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
-    "vcs": {
-        "enabled": true,
-        "clientKind": "git",
-        "useIgnoreFile": true,
-        "defaultBranch": "main"
-    },
-    "files": {
-        "ignoreUnknown": false
-    },
-    "formatter": {
-        "enabled": true,
-        "formatWithErrors": true,
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineWidth": 120,
-        "lineEnding": "lf"
-    },
-    "linter": {
-        "enabled": true,
-        "rules": {
-            "recommended": true,
-            "correctness": {
-                "noUnusedVariables": "error",
-                "noUndeclaredVariables": "off"
-            },
-            "suspicious": {
-                "noExplicitAny": "error",
-                "noEmptyInterface": "error",
-                "noExtraNonNullAssertion": "error",
-                "noMisleadingInstantiator": "error",
-                "noUnsafeDeclarationMerging": "error"
-            },
-            "style": {
-                "useConst": "error",
-                "noNonNullAssertion": "error",
-                "useExportType": "error",
-                "noParameterProperties": "off",
-                "useImportType": "off"
-            },
-            "complexity": {
-                "noExtraBooleanCast": "error",
-                "noUselessConstructor": "off"
-            }
-        }
-    },
-    "javascript": {
-        "formatter": {
-            "quoteStyle": "single",
-            "trailingCommas": "all",
-            "lineWidth": 120,
-            "semicolons": "asNeeded",
-            "arrowParentheses": "asNeeded",
-            "bracketSpacing": true,
-            "bracketSameLine": true
-        },
-        "parser": {
-            "unsafeParameterDecoratorsEnabled": true
-        }
-    },
-    "assist": {
-        "enabled": true,
-        "actions": {
-            "source": {
-                "organizeImports": "on"
-            }
-        }
-    }
+	"$schema": "https://biomejs.dev/schemas/2.5.10/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true,
+		"defaultBranch": "main"
+	},
+	"files": {
+		"ignoreUnknown": false
+	},
+	"formatter": {
+		"enabled": true,
+		"formatWithErrors": true,
+		"indentStyle": "space",
+		"indentWidth": 4,
+		"lineWidth": 120,
+		"lineEnding": "lf"
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"a11y": {
+				"noLabelWithoutControl": "error",
+				"noNoninteractiveElementInteractions": "error",
+				"noSvgWithoutTitle": "error",
+				"useButtonType": "error",
+				"useKeyWithClickEvents": "error",
+				"useValidAnchor": "error"
+			},
+			"complexity": {
+				"noExcessiveCognitiveComplexity": {
+					"level": "error",
+					"options": {
+						"maxAllowedComplexity": 15
+					}
+				},
+				"noExtraBooleanCast": "error",
+				"noUselessConstructor": "off",
+				"noUselessStringConcat": "error",
+				"noUselessTernary": "error",
+				"noUselessUndefined": "error",
+				"useDateNow": "error"
+			},
+			"correctness": {
+				"noUndeclaredVariables": "off",
+				"noUnusedFunctionParameters": "error",
+				"noUnusedImports": "error",
+				"noUnusedPrivateClassMembers": "error",
+				"noUnusedVariables": "error",
+				"useHookAtTopLevel": "off"
+			},
+			"nursery": {
+				"noFloatingPromises": "error",
+				"noIdenticalTestTitle": "error",
+				"noMisusedPromises": "error",
+				"noNegationInEqualityCheck": "error",
+				"noPlaywrightForceOption": "error",
+				"noPlaywrightMissingAwait": "error",
+				"noPlaywrightNetworkidle": "error",
+				"noPlaywrightPagePause": "error",
+				"noPlaywrightWaitForSelector": "error",
+				"noPlaywrightWaitForTimeout": "error",
+				"noUnnecessaryTemplateExpression": "error",
+				"noUnsafePlusOperands": "error",
+				"noUselessTypeConversion": "error",
+				"useArraySome": "error",
+				"useExhaustiveSwitchCases": "error",
+				"useImportsFirst": "error",
+				"useIncludes": "error",
+				"useMathMinMax": "error",
+				"useStringStartsEndsWith": "error"
+			},
+			"performance": {
+				"noAccumulatingSpread": "error"
+			},
+			"security": {
+				"noGlobalEval": "error"
+			},
+			"style": {
+				"noCommonJs": "error",
+				"noExportedImports": "error",
+				"noInferrableTypes": "error",
+				"noNegationElse": "error",
+				"noNestedTernary": "error",
+				"noNonNullAssertion": "error",
+				"noParameterAssign": "error",
+				"noParameterProperties": "off",
+				"noSubstr": "error",
+				"noUnusedTemplateLiteral": "error",
+				"noUselessElse": "error",
+				"noYodaExpression": "error",
+				"useCollapsedElseIf": "error",
+				"useCollapsedIf": "error",
+				"useConsistentArrayType": {
+					"level": "error",
+					"options": {
+						"syntax": "shorthand"
+					}
+				},
+				"useConsistentBuiltinInstantiation": "error",
+				"useConst": "error",
+				"useDefaultParameterLast": "error",
+				"useErrorCause": "error",
+				"useExplicitLengthCheck": "error",
+				"useExponentiationOperator": "error",
+				"useExportType": "error",
+				"useForOf": "error",
+				"useImportType": "off",
+				"useNodejsImportProtocol": "error",
+				"useNumberNamespace": "error",
+				"useObjectSpread": "error",
+				"useSelfClosingElements": "error",
+				"useShorthandAssign": "error",
+				"useSingleVarDeclarator": "error",
+				"useTemplate": "error",
+				"useThrowNewError": "error",
+				"useThrowOnlyError": "error"
+			},
+			"suspicious": {
+				"noAlert": "error",
+				"noArrayIndexKey": "error",
+				"noConsole": {
+					"level": "error",
+					"options": {
+						"allow": ["warn", "error", "info"]
+					}
+				},
+				"noDoubleEquals": "error",
+				"noEmptyInterface": "error",
+				"noEvolvingTypes": "error",
+				"noExplicitAny": "error",
+				"noExtraNonNullAssertion": "error",
+				"noFocusedTests": "error",
+				"noMisleadingInstantiator": "error",
+				"noNestedPromises": "error",
+				"noShadow": "error",
+				"noTsIgnore": "error",
+				"noUnsafeDeclarationMerging": "error",
+				"noUnusedExpressions": "error",
+				"noVar": "error"
+			}
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["scripts/**", "**/scripts/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noConsole": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"**/*.cjs",
+				"**/*.config.js",
+				"**/*.config.cjs",
+				"**/*.spec.ts",
+				"**/*.e2e-spec.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noCommonJs": "off"
+					}
+				}
+			}
+		}
+	],
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"trailingCommas": "all",
+			"lineWidth": 120,
+			"semicolons": "asNeeded",
+			"arrowParentheses": "asNeeded",
+			"bracketSpacing": true,
+			"bracketSameLine": true
+		},
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
+		}
+	},
+	"assist": {
+		"enabled": true,
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	}
 }

@@ -20,6 +20,17 @@ We want 100% test code coverage on our application to prevent bugs making their 
 
 We follow DRY development methodology to avoid code duplication and bloat. Try where possible to abstract repeatable code.
 
+## Code Style
+
+Biome is the single source of truth for formatting and lint (`@juicyllama/repo/biome`, or `@juicyllama/repo/biome-nestjs` for NestJS services). Every rule it enables is an error: code that does not pass `biome check` is not finished. Never suppress a rule with `biome-ignore` without a one-line reason on the same comment.
+
+Beyond what Biome can check for you:
+
+- **Prefer one flat expression over a chain of early returns when the result stays readable.** `if (!x) return null; if (x === true) return A; return x;` reads better as `return x === true ? A : x || null;`. Keep it flat: no nested ternaries (Biome rejects them), no chains longer than one `?:`. When a ternary would need nesting or a comment to follow, keep the guard clauses instead.
+- Guard clauses over `if/else` blocks: return or throw early, then write the main path unindented.
+- Invert negated conditions (`if (!ready) { a } else { b }` becomes `if (ready) { b } else { a }`); Biome enforces this too.
+- Rethrow with the original error attached: `throw new Error('...', { cause: error })`.
+
 ## Let's Go!
 
 ALWAYS Run `npm run go` before any commit/push to make sure all changes pass the linting, building and testing checks.
