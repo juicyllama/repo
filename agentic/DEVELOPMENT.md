@@ -33,6 +33,10 @@ Beyond what Biome can check for you:
 
 ## Let's Go!
 
-ALWAYS run the repo's `go` script (`npm run go`, or `pnpm go` in pnpm repos) before any commit/push to make sure all changes pass the linting, building and testing checks.
+ALWAYS run the repo's `go` script (`npm run go`, or `pnpm go` in pnpm repos) before you push.
+
+`go` is the fix-then-check command: it applies knip's safe fixes (`knip:fix` removes dead `export` keywords and unused exported types) and Biome's safe fixes (`lint:fix`), then runs the typecheck, the tests and the build. Review what it changed before you commit it.
+
+The pre-commit hook and CI run `verify` instead: the same knip, Biome and typecheck with no writes, so a commit that would need fixing is rejected rather than silently rewritten.
 
 Fix any errors found.

@@ -68,6 +68,7 @@
 		"next": "^16.2.9"
 	},
 	"peerDependencies": {
-		"@biomejs/biome": "^2.5.10"
+		"@biomejs/biome": "^2.5.10",
+		"knip": "^6.33.0"
 	}
 }
