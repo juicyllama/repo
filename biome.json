@@ -29,7 +29,9 @@
 			"complexity": {
 				"noExcessiveCognitiveComplexity": {
 					"level": "error",
-					"options": { "maxAllowedComplexity": 15 }
+					"options": {
+						"maxAllowedComplexity": 15
+					}
 				},
 				"noExtraBooleanCast": "error",
 				"noUselessStringConcat": "error",
@@ -88,7 +90,9 @@
 				"useCollapsedIf": "error",
 				"useConsistentArrayType": {
 					"level": "error",
-					"options": { "syntax": "shorthand" }
+					"options": {
+						"syntax": "shorthand"
+					}
 				},
 				"useConsistentBuiltinInstantiation": "error",
 				"useConst": "error",
@@ -114,7 +118,9 @@
 				"noArrayIndexKey": "error",
 				"noConsole": {
 					"level": "error",
-					"options": { "allow": ["warn", "error", "info"] }
+					"options": {
+						"allow": ["warn", "error", "info"]
+					}
 				},
 				"noDoubleEquals": "error",
 				"noEmptyInterface": "error",
@@ -144,7 +150,7 @@
 			}
 		},
 		{
-			"includes": ["**/*.cjs"],
+			"includes": ["**/*.cjs", "**/*.config.js", "**/*.config.cjs"],
 			"linter": {
 				"rules": {
 					"style": {

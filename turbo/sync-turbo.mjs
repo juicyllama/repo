@@ -31,7 +31,7 @@ const exists = async path => {
 
 if (!(await exists(sharedPath))) {
 	console.warn(
-		`Skipping turbo.json generation: missing ${sharedPath}. ` + 'Create turbo.shared.json in your project root.',
+		`Skipping turbo.json generation: missing ${sharedPath}. Create turbo.shared.json in your project root.`,
 	)
 	process.exit(0)
 }
@@ -45,28 +45,24 @@ try {
 	process.exit(1)
 }
 
-const extendsList = Array.isArray(shared.extends)
-	? shared.extends
-	: typeof shared.extends === 'string'
-		? [shared.extends]
-		: []
+const extendsList = [shared.extends].flat().filter(value => typeof value === 'string')
 const shouldLoadBase = extendsList.includes('@juicyllama/repo/turbo')
 
 let base = {}
 let baseStatus = 'not-requested'
 if (shouldLoadBase) {
-	if (!(await exists(basePath))) {
-		baseStatus = 'missing'
-		console.warn(`Base turbo.json not found at ${basePath}. ` + 'Continuing with turbo.shared.json only.')
-	} else {
+	if (await exists(basePath)) {
 		try {
 			base = await readJson(basePath)
 			baseStatus = 'merged'
 		} catch (error) {
 			baseStatus = 'invalid'
-			console.error(`Failed to read base turbo.json at ${basePath}. ` + 'Continuing with turbo.shared.json only.')
+			console.error(`Failed to read base turbo.json at ${basePath}. Continuing with turbo.shared.json only.`)
 			console.error(error instanceof Error ? error.message : error)
 		}
+	} else {
+		baseStatus = 'missing'
+		console.warn(`Base turbo.json not found at ${basePath}. Continuing with turbo.shared.json only.`)
 	}
 }
 
@@ -80,8 +76,8 @@ const mergedTasks = {
 const merged = {
 	...base,
 	...shared,
-	globalEnv: mergedGlobalEnv.length ? mergedGlobalEnv : undefined,
-	tasks: Object.keys(mergedTasks).length ? mergedTasks : undefined,
+	globalEnv: mergedGlobalEnv.length > 0 ? mergedGlobalEnv : undefined,
+	tasks: Object.keys(mergedTasks).length > 0 ? mergedTasks : undefined,
 }
 
 delete merged.extends
