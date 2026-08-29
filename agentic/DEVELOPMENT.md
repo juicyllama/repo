@@ -33,6 +33,6 @@ Beyond what Biome can check for you:
 
 ## Let's Go!
 
-ALWAYS Run `npm run go` before any commit/push to make sure all changes pass the linting, building and testing checks.
+ALWAYS run the repo's `go` script (`npm run go`, or `pnpm go` in pnpm repos) before any commit/push to make sure all changes pass the linting, building and testing checks.
 
 Fix any errors found.
