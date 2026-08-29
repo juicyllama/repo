@@ -3,7 +3,7 @@
 We follow a strict development lifecycle.
 
 1. Always follow [Trunk development](#trunk-development)
-2. We follow [TDD](#test-driven-development) and [DRY](#dont-repeat-yourself-dry) principles
+2. We follow [TDD](#test-driven-development-tdd) and [DRY](#dont-repeat-yourself-dry) principles
 3. Before pushing code we always run [Let's Go!](#lets-go) to ensure all formatting, linting, building and testing works. Any issues should be fixed.
 
 ## Trunk Development
