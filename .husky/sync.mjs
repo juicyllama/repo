@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const packageRoot = resolve(scriptDir, '..')
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: INIT_CWD is set by npm/pnpm during postinstall, not a turbo task input
 const initCwd = process.env.INIT_CWD
 const targetRoot = initCwd ? resolve(initCwd) : process.cwd()
 
@@ -31,7 +32,7 @@ if (!(await exists(sourcePath))) {
 }
 
 if (await exists(outputPath)) {
-	console.log(`Skipping .husky sync: ${outputPath} already exists.`)
+	console.info(`Skipping .husky sync: ${outputPath} already exists.`)
 	process.exit(0)
 }
 
@@ -53,4 +54,4 @@ const copyDir = async (src, dest) => {
 }
 
 await copyDir(sourcePath, outputPath)
-console.log(`Copied .husky to ${outputPath} (excluding sync.mjs).`)
+console.info(`Copied .husky to ${outputPath} (excluding sync.mjs).`)

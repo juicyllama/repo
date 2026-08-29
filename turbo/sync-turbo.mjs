@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const packageRoot = resolve(scriptDir, '..')
+// biome-ignore lint/suspicious/noUndeclaredEnvVars: INIT_CWD is set by npm/pnpm during postinstall, not a turbo task input
 const initCwd = process.env.INIT_CWD
 const targetRoot = initCwd ? resolve(initCwd) : process.cwd()
 
@@ -87,4 +88,4 @@ delete merged.extends
 
 const output = `${JSON.stringify(merged, null, 2)}\n`
 await writeFile(outputPath, output)
-console.log(`Generated turbo.json at ${outputPath}. Base merge: ${baseStatus}.`)
+console.info(`Generated turbo.json at ${outputPath}. Base merge: ${baseStatus}.`)
