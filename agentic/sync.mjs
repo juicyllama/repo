@@ -31,5 +31,16 @@ if (!(await exists(sourcePath))) {
 	process.exit(0)
 }
 
-await copyFile(sourcePath, outputPath)
-console.info(`Copied DEVELOPMENT.md to ${outputPath}.`)
+// Scaffold once, never clobber — the same contract .husky/sync.mjs already honours.
+// Consumers edit DEVELOPMENT.md to document their own repo, and this runs on every
+// `npm install`, so overwriting it silently discarded that work: the change reappeared
+// as an unexplained diff, got committed, and took any repo-specific guidance with it.
+//
+// Branching rather than exiting early: npm gives postinstall a pipe for stdout, where
+// writes are async, and process.exit would drop this line before it flushed.
+if (await exists(outputPath)) {
+	console.info(`Skipping DEVELOPMENT.md sync: ${outputPath} already exists.`)
+} else {
+	await copyFile(sourcePath, outputPath)
+	console.info(`Copied DEVELOPMENT.md to ${outputPath}.`)
+}
