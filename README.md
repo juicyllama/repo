@@ -130,6 +130,10 @@ import { nextConfig } from '@juicyllama/repo/jest/next'
 export default nextConfig
 ```
 
+## Dependency refresh
+
+`os-deps` is the set of repo commands a Zero Human dependency-refresh task calls: what is out of date, how a bump is applied, and whether anything resolved lower. It reads a pnpm or an npm lockfile. See [deps/README.md](./deps/README.md) for the `mise.toml` tasks to add.
+
 ## Husky
 
 The package will copy over .husky folder if it does not already exist with a recommended default setup.
