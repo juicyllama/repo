@@ -21,7 +21,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsc",
-		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs && node ./.husky/sync.mjs"
+		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs && node ./.husky/sync.mjs",
+		"test": "node --test deps/os-deps.spec.mjs"
 	},
 	"exports": {
 		"./biome": "./biome.json",
@@ -47,6 +48,9 @@
 			"require": "./dist/jest/next.js",
 			"types": "./dist/jest/next.d.ts"
 		}
+	},
+	"bin": {
+		"os-deps": "./deps/os-deps.mjs"
 	},
 	"dependencies": {
 		"@jest/globals": "^30.4.1",

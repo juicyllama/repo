@@ -16,6 +16,9 @@ on:
     workflow_dispatch:
     workflow_call:
 
+permissions:
+    contents: read
+
 jobs:
     pr_checks:
         name: 'Pull Request Package'
@@ -25,7 +28,8 @@ jobs:
             -   name: 'Checkout'
                 uses: actions/checkout@v4
                 with:
-                    token: ${{ secrets.GH_CI_CD_RELEASE }}
+                    token: ${{ github.token }}
+                    persist-credentials: false
 
             -   name: Install Node.js
                 uses: actions/setup-node@v4
@@ -41,6 +45,6 @@ jobs:
             -   name: Build
                 run: npm run build
 
-            # -   name: Test
-            #     run: npm run test
+            -   name: Test
+                run: npm run test
 
