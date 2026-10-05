@@ -331,6 +331,10 @@ export function buildReport(rows, packuments, audit, { now, minAgeDays = DEFAULT
 			held.push({ name: group.name, current: group.current, reason: 'the registry does not have this package' })
 			continue
 		}
+		if (packument.held) {
+			held.push({ name: group.name, current: group.current, reason: packument.held })
+			continue
+		}
 		const security = audit.get(group.name) ?? null
 		const picked = pickTargets({
 			current: group.current,
@@ -714,15 +718,29 @@ function registryResolver(driver, root) {
 	}
 }
 
-/** One registry document, slimmed, or null when the registry has no such package. Anything else fails the scan. */
-async function fetchPackument(registry, name, attempts = 3) {
+const sleep = ms => new Promise(done => setTimeout(done, ms))
+
+/**
+ * One registry document, slimmed, or null when the registry has no such package, or `{ held }` when it wants
+ * credentials this scan does not have. Anything else fails the scan, after a few tries a little apart: a rate limit
+ * or a registry that is down does not recover in a millisecond.
+ */
+export async function fetchPackument(registry, name, attempts = 3, { fetchFn = fetch, wait = sleep } = {}) {
 	const url = `${registry}${name.replace('/', '%2f')}`
 	let last = ''
 	for (let attempt = 0; attempt < attempts; attempt += 1) {
+		if (attempt > 0) {
+			await wait(500 * 2 ** attempt)
+		}
 		try {
-			const response = await fetch(url, { headers: { accept: 'application/json' } })
+			const response = await fetchFn(url, { headers: { accept: 'application/json' } })
 			if (response.status === 404) {
 				return null
+			}
+			// The registry is read without credentials. A package that needs one is held back with that reason, not
+			// guessed at, and does not stop the scan of every other dependency.
+			if (response.status === 401 || response.status === 403) {
+				return { held: `the registry needs credentials for this package (HTTP ${response.status})` }
 			}
 			if (response.ok) {
 				return slimPackument(await response.json())

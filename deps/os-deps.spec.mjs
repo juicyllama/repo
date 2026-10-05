@@ -10,6 +10,7 @@ import {
 	buildReport,
 	bumpLevel,
 	compareVersions,
+	fetchPackument,
 	findDowngrades,
 	lockfileImporters,
 	mergeBase,
@@ -658,5 +659,77 @@ fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2))
 			assert.equal(down.status, 1)
 			assert.match(down.stderr, /downgrade: \.: left 1\.0\.0 -> 0\.9\.0/)
 		})
+	})
+})
+
+describe('fetchPackument', () => {
+	const answer =
+		(status, body = {}) =>
+		async () => ({ status, ok: status >= 200 && status < 300, json: async () => body })
+	const noWait = async () => undefined
+
+	it('reads a package, and says null when the registry has none', async () => {
+		const found = await fetchPackument('https://r/', 'left', 3, {
+			fetchFn: answer(200, { 'dist-tags': { latest: '1.0.0' }, versions: {}, time: {} }),
+			wait: noWait,
+		})
+		assert.equal(found.latest, '1.0.0')
+		assert.equal(await fetchPackument('https://r/', 'gone', 3, { fetchFn: answer(404), wait: noWait }), null)
+	})
+
+	it('holds back a package that wants credentials, with the reason, instead of failing the scan', async () => {
+		for (const status of [401, 403]) {
+			const held = await fetchPackument('https://r/', '@acme/private', 3, {
+				fetchFn: answer(status),
+				wait: noWait,
+			})
+			assert.deepEqual(held, { held: `the registry needs credentials for this package (HTTP ${status})` })
+		}
+	})
+
+	it('tries again a little later when the registry fails, and fails the scan when it keeps failing', async () => {
+		const waits = []
+		let calls = 0
+		const down = async () => {
+			calls += 1
+			return { status: 503, ok: false }
+		}
+
+		await assert.rejects(
+			fetchPackument('https://r/', 'left', 3, { fetchFn: down, wait: async ms => waits.push(ms) }),
+			/did not answer for left \(HTTP 503\)/,
+		)
+		assert.equal(calls, 3)
+		assert.deepEqual(waits, [1000, 2000])
+	})
+})
+
+describe('buildReport with a package the registry held back', () => {
+	it('lists it under held back with the registry’s reason, and reports the rest', () => {
+		const rows = [
+			{ importer: '.', name: 'private', specifier: '^1.0.0', version: '1.0.0' },
+			{ importer: '.', name: 'left', specifier: '^1.0.0', version: '1.0.0' },
+		]
+		const packuments = new Map([
+			['private', { held: 'the registry needs credentials for this package (HTTP 401)' }],
+			[
+				'left',
+				slimPackument({
+					'dist-tags': { latest: '1.0.1' },
+					versions: { '1.0.0': {}, '1.0.1': {} },
+					time: { '1.0.0': '2026-01-01T00:00:00Z', '1.0.1': '2026-02-01T00:00:00Z' },
+				}),
+			],
+		])
+
+		const report = buildReport(rows, packuments, new Map(), { now: Date.parse('2026-10-04T00:00:00Z') })
+
+		assert.deepEqual(report.held, [
+			{ name: 'private', current: '1.0.0', reason: 'the registry needs credentials for this package (HTTP 401)' },
+		])
+		assert.deepEqual(
+			report.updates.map(row => row.name),
+			['left'],
+		)
 	})
 })
