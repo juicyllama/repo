@@ -82,6 +82,20 @@ requirements. For example, validate that the manifest identifies the candidate's
 and that a protected schema snapshot is unchanged. The runner retries from current main if a concurrent
 merge invalidates a candidate. Repositories without this optional input retain the existing release path.
 
+A successful dispatched workflow is not by itself a required branch check: GitHub does not accept
+`workflow_dispatch` job check runs as ruleset-required status checks. If the branch requires a named
+status, the repository's candidate workflow must publish that exact context on the candidate SHA,
+with `statuses: write`, from the actual validation result. Publish `pending` before validation and
+`success` only after it passes; a rejected candidate must publish `failure`. Use a final reporting
+step that also runs after validation errors or cancellation, publishing `failure` or `error` when
+validation did not pass. Hard termination can still prevent reporting; a pending status must never
+be treated as success, and the release runner must fail when its bounded wait expires. Treat a failed
+status write as a workflow failure. Keep the branch rule enabled and preserve the ordinary pull-request check.
+GitHub documents this under
+[Checks from some workflow jobs are not evaluated](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks#checks-from-some-workflow-jobs-are-not-evaluated).
+The restriction is specific to workflow-job checks; checks created by an external GitHub App are not
+subject to it. Matching the status name and SHA alone does not make an ineligible job check count.
+
 Call `os-release-verify.yml` on PR opened, synchronize, reopened, edited, labeled and unlabeled events.
 Grant `contents: read`, `pull-requests: read`, `issues: read`. The checkout is the live PR head and has no
 persisted write token. Linked issue label changes require rerunning the check. Install the note-writing
