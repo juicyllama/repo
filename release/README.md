@@ -53,7 +53,12 @@ Wallet sheets stay open when focus changes. No integration changes are required.
 Save as `.release/pending/pr-N.md`. No version or date. With `notes.enabled: false`, metadata is still
 required and the body must be empty. Only pending files cause a release; no intents means no bump.
 Several pending files produce one bump at the highest level and one stamped note per intent. Timestamps
-are distinct even when several notes land together. `.release/latest.json` records recovery evidence.
+are distinct even when several notes land together. Notes receive timestamps in filename order,
+after existing notes, so OpenChangelog pagination and publication order agree. If a same-minute
+version change would sort backwards, only the new note advances to the next minute; historical
+filenames and timestamps stay unchanged. If a historical filename still sorts after that advanced
+path, planning fails before writing files and identifies the inconsistent filename/publishedAt.
+`.release/latest.json` records recovery evidence.
 
 ## GitHub Actions
 
