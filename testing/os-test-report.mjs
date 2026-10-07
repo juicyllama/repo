@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { createWriteStream, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { constants } from 'node:os'
 import { join, relative } from 'node:path'
+import { finished } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
 
 /** Convert one native runner report into counts and failed test names. */
@@ -195,11 +196,26 @@ if (argv[0] === 'summary') {
 	})
 	const directory = join(cwd, '.os/test-results', `${started}-${phase}-${randomUUID().slice(0, 8)}`)
 	const reports = join(directory, 'native')
-	mkdirSync(reports, { recursive: true })
-	const log = createWriteStream(join(directory, 'output.log'))
+	let reportingAvailable = false
+	let log
+	let logDone
+	const logWarnings = []
+	try {
+		mkdirSync(reports, { recursive: true })
+		reportingAvailable = true
+		log = createWriteStream(join(directory, 'output.log'))
+		logDone = finished(log).catch(error => {
+			logWarnings.push(`Full log unavailable: ${error.message}`)
+			console.error(`Test reporting unavailable: full log: ${error.message}`)
+		})
+	} catch (error) {
+		logWarnings.push(`Full log unavailable: ${error.message}`)
+		console.error(`Test reporting unavailable: ${error.message}`)
+	}
 	const reporter = fileURLToPath(new URL('./node-reporter.mjs', import.meta.url))
 	const nodeOptions = process.env.NODE_OPTIONS || ''
 	const customReporter =
+		!reportingAvailable ||
 		options.includes('--no-node-reporter') ||
 		nodeOptions.includes('--test-reporter') ||
 		argv.slice(separator + 1).some(arg => arg.startsWith('--test-reporter'))
@@ -208,8 +224,8 @@ if (argv[0] === 'summary') {
 		detached: process.platform !== 'win32',
 		env: {
 			...process.env,
-			OS_TEST_REPORT_RUN: directory,
-			OS_TEST_REPORT_DIR: reports,
+			OS_TEST_REPORT_RUN: reportingAvailable ? directory : '',
+			OS_TEST_REPORT_DIR: reportingAvailable ? reports : '',
 			NODE_OPTIONS: customReporter ? nodeOptions : `${nodeOptions} --test-reporter=${JSON.stringify(reporter)}`,
 		},
 		stdio: ['inherit', 'pipe', 'pipe'],
@@ -235,25 +251,28 @@ if (argv[0] === 'summary') {
 		[child.stderr, process.stderr],
 	]) {
 		stream.on('data', chunk => {
-			log.write(chunk)
+			if (log && !log.destroyed) log.write(chunk)
 			destination.write(chunk)
 		})
 	}
 	let spawnFailure
 	child.on('error', error => {
 		spawnFailure = error.code === 'ENOENT' ? 127 : 126
-		log.write(`${error.message}\n`)
+		if (log && !log.destroyed) log.write(`${error.message}\n`)
 		console.error(error.message)
 	})
-	child.on('close', (childCode, childSignal) => {
+	child.on('close', async (childCode, childSignal) => {
 		process.off('SIGTERM', terminate)
 		process.off('SIGINT', interrupt)
 		const signal = interrupted ?? childSignal
 		const code = signal ? 128 + (constants.signals[signal] ?? 1) : (spawnFailure ?? childCode)
-		log.end()
 		process.exitCode = code ?? 1
+		log?.end()
+		await logDone
+		if (!reportingAvailable) return
 		try {
 			const { native, warnings } = readNativeReports(reports)
+			warnings.push(...logWarnings)
 			const counts = { passed: 0, failed: 0, skipped: 0, todo: 0 }
 			for (const result of native) {
 				counts.passed += result.counts.passed

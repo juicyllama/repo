@@ -59,6 +59,40 @@ test('an unavailable reporting directory does not replace the command exit statu
 	assert.match(result.stdout + result.stderr, /Test reporting unavailable/)
 })
 
+test('report directory setup failure still runs the command and preserves its exit', () => {
+	const cwd = fixture('')
+	writeFileSync(join(cwd, '.os'), 'not a directory')
+	const result = run(cwd, 'check', ['node', '-e', "console.log('command ran'); process.exit(6)"])
+	assert.equal(result.status, 6, result.stderr)
+	assert.match(result.stdout, /command ran/)
+	assert.match(result.stderr, /Test reporting unavailable/)
+})
+
+test('an asynchronous log write failure preserves the command exit and reports missing evidence', () => {
+	const cwd = fixture('')
+	const preload = join(cwd, 'log-failure.mjs')
+	writeFileSync(
+		preload,
+		`
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
+import {Writable} from 'node:stream';
+const original = fs.createWriteStream;
+fs.createWriteStream = (path, ...args) => String(path).endsWith('output.log')
+  ? new Writable({write(chunk, encoding, done) { done(new Error('simulated disk full')); }})
+  : original(path, ...args);
+syncBuiltinESMExports();
+`,
+	)
+	const result = run(cwd, 'check', ['node', '-e', "console.log('command ran'); process.exit(6)"], {
+		NODE_OPTIONS: `--import=${preload}`,
+	})
+	assert.equal(result.status, 6, result.stderr)
+	assert.match(result.stdout, /command ran/)
+	assert.equal(report(cwd).reportComplete, false)
+	assert.match(report(cwd).warnings.join(' '), /log unavailable/i)
+})
+
 test('termination reaches the test command and leaves an interrupted report', async () => {
 	const cwd = fixture('')
 	const env = { ...process.env }
