@@ -59,7 +59,7 @@ are distinct even when several notes land together. `.release/latest.json` recor
 
 Call `.github/workflows/os-release.yml` on push to main and manual dispatch. Set `install-command` to
 the repository's frozen dependency install, `ci-workflow` to an unconditional push-to-main CI workflow,
-and grant `contents: write`, `actions: read`. Pin the reusable workflow to a reviewed commit.
+and grant `contents: write`, `actions: write`. Pin the reusable workflow to a reviewed commit.
 The shared package version referenced by the workflow must be published before adoption.
 Do not use `os-release-main` as a caller concurrency group: that is the called workflow's serial lock.
 CI must not cancel older main runs; the release runner checks the newest main SHA and waits for that SHA.
@@ -71,6 +71,16 @@ It refuses to replace a tag belonging to main. Orphan cleanup is restricted to c
 created by this release protocol. Rerunning a failed workflow recovers the release without another bump.
 Outputs are `released`, `version`, `sha`. Chain delivery only when `released == 'true'`, dispatching
 at `v<version>` with `actions: write`: a `GITHUB_TOKEN` branch/tag push does not start other workflows.
+
+If branch rules require checks on the generated release commit, set `candidate-check-workflow` to a
+repository workflow filename supporting `workflow_dispatch`. The runner publishes an immutable
+`os-release/v<version>-<sha-prefix>` branch, dispatches that workflow, and waits for a fresh successful
+run matching both the candidate SHA and branch before pushing main. It never forces or deletes a
+candidate branch. Failed candidates remain available for inspection; main and tags remain untouched.
+The repository workflow must actually validate the generated changes and keep its existing protection
+requirements. For example, validate that the manifest identifies the candidate's parent as current main
+and that a protected schema snapshot is unchanged. The runner retries from current main if a concurrent
+merge invalidates a candidate. Repositories without this optional input retain the existing release path.
 
 Call `os-release-verify.yml` on PR opened, synchronize, reopened, edited, labeled and unlabeled events.
 Grant `contents: read`, `pull-requests: read`, `issues: read`. The checkout is the live PR head and has no
@@ -85,5 +95,5 @@ A rerun after partial publication fills missing packages and can retry downstrea
 ## Checks
 
 `npm test` includes disposable Git remotes exercising CI failures, simultaneous merges, rejected main
-pushes, tag recovery, intent validation, timestamp collisions, rollback and npm publication recovery.
+pushes, candidate checks and races, tag recovery, intent validation, timestamp collisions, rollback and npm publication recovery.
 Run `npx biome check release package.json` and `npm run build` before publishing.

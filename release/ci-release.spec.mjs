@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, it } from 'node:test'
-import { ensureTag, release } from './ci-release.mjs'
+import { ensureTag, release, validateCandidate } from './ci-release.mjs'
 import { apply, git } from './os-release.mjs'
 
 let dir
@@ -171,4 +171,128 @@ it('never moves an existing tag that belongs to main', async () => {
 	git(root, 'push', 'origin', `${source}:refs/tags/v1.0.1`)
 	await assert.rejects(release(root, options()), /Refusing to replace existing tag/)
 	assert.equal(git(remote, 'rev-parse', 'v1.0.1'), source)
+})
+
+function candidateApi(sha, { conclusion = 'success', onDispatch = () => {} } = {}) {
+	let dispatched = false
+	let polls = 0
+	const branch = `os-release/v1.0.1-${sha.slice(0, 12)}`
+	return (_root, command, args) => {
+		assert.equal(command, 'gh')
+		if (args[0] === 'workflow') {
+			assert.deepEqual(args, ['workflow', 'run', 'pairing.yml', '--ref', branch])
+			assert.equal(git(remote, 'rev-parse', branch), sha)
+			assert.equal(git(remote, 'rev-parse', 'main'), source)
+			assert.equal(git(remote, 'tag'), '')
+			dispatched = true
+			onDispatch()
+			return ''
+		}
+		assert.equal(args[args.indexOf('--event') + 1], 'workflow_dispatch')
+		const stale = { databaseId: 10, headSha: sha, headBranch: branch, status: 'completed', conclusion: 'success' }
+		if (!dispatched) return JSON.stringify([stale])
+		polls++
+		const fresh = { databaseId: 11, headSha: sha, headBranch: branch, status: 'completed', conclusion }
+		// A previous success and a new success for another branch must not satisfy this dispatch.
+		if (polls === 1) return JSON.stringify([stale, { ...fresh, headBranch: 'other' }])
+		return JSON.stringify([stale, fresh])
+	}
+}
+
+it('validates the exact generated candidate before main and tag, ignoring stale or wrong-branch successes', async () => {
+	const result = await release(
+		root,
+		options({
+			checkCandidate: (version, sha) =>
+				validateCandidate(root, version, sha, {
+					workflow: 'pairing.yml',
+					command: candidateApi(sha),
+					pause: async () => {},
+				}),
+		}),
+	)
+	assert.equal(git(remote, 'rev-parse', 'main'), result.sha)
+	assert.equal(git(remote, 'rev-parse', 'v1.0.1'), result.sha)
+})
+
+it('retains a failed candidate for review without changing main or tagging', async () => {
+	await assert.rejects(
+		release(
+			root,
+			options({
+				checkCandidate: (version, sha) =>
+					validateCandidate(root, version, sha, {
+						workflow: 'pairing.yml',
+						command: candidateApi(sha, { conclusion: 'failure' }),
+						pause: async () => {},
+					}),
+			}),
+		),
+		/ended failure/,
+	)
+	assert.equal(git(remote, 'rev-parse', 'main'), source)
+	assert.equal(git(remote, 'tag'), '')
+	assert.match(git(remote, 'for-each-ref', '--format=%(refname)', 'refs/heads/os-release'), /os-release\/v1\.0\.1-/)
+})
+
+it('refuses an existing candidate branch pointing elsewhere without overwriting it', async () => {
+	let branch
+	await assert.rejects(
+		release(
+			root,
+			options({
+				checkCandidate: (version, sha) => {
+					branch = `os-release/v${version}-${sha.slice(0, 12)}`
+					git(root, 'push', 'origin', `${source}:refs/heads/${branch}`)
+					return validateCandidate(root, version, sha, {
+						workflow: 'pairing.yml',
+						command: () => assert.fail('must not dispatch'),
+					})
+				},
+			}),
+		),
+		/Refusing to replace candidate/,
+	)
+	assert.equal(git(remote, 'rev-parse', branch), source)
+	assert.equal(git(remote, 'rev-parse', 'main'), source)
+})
+
+it('replans a candidate rejected after another merge advances main', async () => {
+	let attempts = 0
+	const checked = []
+	const result = await release(
+		root,
+		options({
+			checkCi: async sha => checked.push(sha),
+			checkCandidate: async (_version, _sha) => {
+				if (++attempts === 1) {
+					intent(writer, 2)
+					commit(writer, 'Merge while checking candidate')
+					git(writer, 'push', 'origin', 'main')
+					throw new Error('Candidate parent is no longer main')
+				}
+			},
+		}),
+	)
+	assert.equal(attempts, 2)
+	assert.equal(checked.length, 2)
+	assert.equal(git(remote, 'rev-parse', 'main'), result.sha)
+	assert.deepEqual(JSON.parse(readFileSync(join(root, '.release/latest.json'))).prs, [1, 2])
+})
+
+it('preserves the candidate failure when checking current main also fails', async () => {
+	await assert.rejects(
+		release(
+			root,
+			options({
+				checkCandidate: async () => {
+					git(root, 'remote', 'set-url', 'origin', join(root, 'unavailable-remote'))
+					throw new Error('Candidate check ended failure')
+				},
+			}),
+		),
+		/Candidate check ended failure/,
+	)
+	assert.equal(git(remote, 'rev-parse', 'main'), source)
+	assert.equal(git(remote, 'tag'), '')
 })
