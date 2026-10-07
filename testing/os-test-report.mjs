@@ -119,13 +119,20 @@ function readNativeReports(directory) {
 		return { native, warnings: ['Test reporting unavailable: cannot read native report directory'] }
 	}
 	for (const path of paths) {
+		let parsed
 		try {
-			const value = normalize(JSON.parse(readFileSync(path, 'utf8')))
+			parsed = JSON.parse(readFileSync(path, 'utf8'))
+		} catch {
+			warnings.push(`Cannot read native test report: ${relative(directory, path)}`)
+			continue
+		}
+		try {
+			const value = normalize(parsed)
 			if (Object.values(value.counts).some(count => !Number.isSafeInteger(count) || count < 0))
 				throw new Error('invalid counts')
 			native.push(value)
 		} catch {
-			warnings.push(`Cannot read native test report: ${relative(directory, path)}`)
+			warnings.push(`Unrecognized native test report format: ${relative(directory, path)}`)
 		}
 	}
 	return { native, warnings }

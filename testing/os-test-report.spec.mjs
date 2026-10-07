@@ -177,6 +177,21 @@ test('malformed reports do not replace the tested command status or claim succes
 	assert.match(report(cwd).warnings.join(' '), /broken.json/)
 })
 
+test('valid JSON in an unknown format is named as unrecognized and never counts as a pass', () => {
+	const cwd = fixture('')
+	const result = run(cwd, 'check', [
+		'node',
+		'-e',
+		"require('node:fs').writeFileSync(process.env.OS_TEST_REPORT_DIR+'/coverage.json', JSON.stringify({coverage:{}}))",
+	])
+	assert.equal(result.status, 0, result.stderr)
+	const actual = report(cwd)
+	assert.equal(actual.outcome, 'report_incomplete')
+	assert.equal(actual.reportComplete, false)
+	assert.equal(actual.counts, null)
+	assert.deepEqual(actual.warnings, ['Unrecognized native test report format: coverage.json'])
+})
+
 test('native Playwright results count tests without counting retry attempts twice', () => {
 	const cwd = fixture('')
 	const playwright = fileURLToPath(new URL('../node_modules/@playwright/test/index.js', import.meta.url))
