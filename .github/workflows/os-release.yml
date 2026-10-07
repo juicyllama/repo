@@ -14,6 +14,10 @@ on:
       node-version:
         type: string
         default: '24'
+      python-version:
+        description: Optional Python runtime for repository-owned note validators
+        type: string
+        default: ''
     outputs:
       released:
         value: ${{ jobs.release.outputs.released }}
@@ -52,6 +56,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
+      - uses: actions/setup-python@v5
+        if: inputs.python-version != ''
+        with:
+          python-version: ${{ inputs.python-version }}
       - run: npm install --global corepack
       - run: corepack enable
       - uses: jdx/mise-action@v4
