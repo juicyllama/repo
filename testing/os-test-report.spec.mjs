@@ -5,7 +5,6 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
 const cli = fileURLToPath(new URL('./os-test-report.mjs', import.meta.url))
@@ -28,6 +27,12 @@ function report(cwd) {
 	const root = join(cwd, '.os/test-results')
 	const folder = readdirSync(root).find(name => name !== 'latest.md')
 	return JSON.parse(readFileSync(join(root, folder, 'report.json'), 'utf8'))
+}
+
+function summary(cwd) {
+	const result = spawnSync(process.execPath, [cli, 'summary'], { cwd, encoding: 'utf8' })
+	assert.equal(result.status, 0, result.stderr)
+	return result.stdout
 }
 
 test('a missing executable reports command failure with shell-compatible status 127', () => {
@@ -89,7 +94,7 @@ test('a real Node test execution produces counts, a compact summary and its full
 	assert.equal(actual.exitCode, 0)
 	assert.equal(actual.command, 'mise run os:check')
 	assert.ok(actual.durationMs >= 0)
-	assert.match(readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8'), /1 passed/)
+	assert.match(summary(cwd), /1 passed/)
 	assert.match(readFileSync(join(cwd, actual.logPath), 'utf8'), /passes/)
 })
 
@@ -114,7 +119,7 @@ test('expected Node todo failures are not listed as failed tests', () => {
 	assert.equal(actual.counts.failed, 0)
 	assert.equal(actual.counts.todo, 1)
 	assert.deepEqual(actual.failures, [])
-	assert.doesNotMatch(readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8'), /Failed tests:/)
+	assert.doesNotMatch(summary(cwd), /Failed tests:/)
 })
 
 test('a native report write failure cannot turn a passing Node test into a command failure', () => {
@@ -196,9 +201,9 @@ test('sequential phases keep separate rows, and rerunning a phase updates its ro
 	run(cwd, 'red')
 	run(cwd, 'check')
 	run(cwd, 'check')
-	const summary = readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8')
-	assert.match(summary, /\| red \|/)
-	assert.equal(summary.split('| check |').length - 1, 1)
+	const text = summary(cwd)
+	assert.match(text, /\| red \|/)
+	assert.equal(text.split('| check |').length - 1, 1)
 })
 
 test('identical command labels retain distinct RED and check evidence', () => {
@@ -215,9 +220,9 @@ test('identical command labels retain distinct RED and check evidence', () => {
 			0,
 		)
 	}
-	const summary = readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8')
-	assert.match(summary, /\| red \|/)
-	assert.match(summary, /\| check \|/)
+	const text = summary(cwd)
+	assert.match(text, /\| red \|/)
+	assert.match(text, /\| check \|/)
 })
 
 test('retained report files do not make clean tested source dirty', () => {
@@ -240,44 +245,22 @@ test('retained report files do not make clean tested source dirty', () => {
 	assert.equal(JSON.parse(readFileSync(join(directory, latest, 'report.json'), 'utf8')).dirty, false)
 })
 
-test('concurrent finalizers wait for the summary writer and retain both command rows', async () => {
+test('concurrent completed commands retain both rows in the aggregate', async () => {
 	const cwd = fixture('')
-	const root = join(cwd, '.os/test-results')
-	mkdirSync(root, { recursive: true })
-	const lock = join(root, '.summary-lock')
-	mkdirSync(lock)
-	const children = ['first', 'second'].map(label => {
-		const child = spawn(
-			process.execPath,
-			[cli, 'run', '--phase', 'check', '--label', label, '--', process.execPath, '-e', 'process.exit(0)'],
-			{ cwd, stdio: 'ignore' },
-		)
-		const state = { closed: false, done: once(child, 'close') }
-		state.done.then(() => {
-			state.closed = true
-		})
-		return state
-	})
-	try {
-		for (
-			let attempt = 0;
-			attempt < 100 &&
-			readdirSync(root).filter(name => name !== '.summary-lock' && name !== 'latest.md').length < 2;
-			attempt++
-		)
-			await delay(20)
-		await delay(150)
-		assert.ok(
-			children.every(child => !child.closed),
-			'a finalizer must not write while another writer holds the lock',
-		)
-	} finally {
-		rmSync(lock, { recursive: true, force: true })
-	}
-	for (const child of children) assert.equal((await child.done)[0], 0)
-	const summary = readFileSync(join(root, 'latest.md'), 'utf8')
-	assert.match(summary, /\| first \|/)
-	assert.match(summary, /\| second \|/)
+	const children = ['first', 'second'].map(label =>
+		once(
+			spawn(
+				process.execPath,
+				[cli, 'run', '--phase', 'check', '--label', label, '--', process.execPath, '-e', 'process.exit(0)'],
+				{ cwd, stdio: 'ignore' },
+			),
+			'close',
+		),
+	)
+	for (const result of await Promise.all(children)) assert.equal(result[0], 0)
+	const actual = summary(cwd)
+	assert.match(actual, /\| first \|/)
+	assert.match(actual, /\| second \|/)
 })
 
 test('child arguments cannot disable the wrapper reporter', () => {
@@ -285,6 +268,29 @@ test('child arguments cannot disable the wrapper reporter', () => {
 	const result = run(cwd, 'check', ['bash', '-c', 'node --test example.test.mjs', '--no-node-reporter'])
 	assert.equal(result.status, 0, result.stderr)
 	assert.equal(report(cwd).counts?.passed, 1)
+})
+
+test('an abandoned aggregate lock cannot block new test evidence', () => {
+	const cwd = fixture('')
+	mkdirSync(join(cwd, '.os/test-results/.summary-lock'), { recursive: true })
+	const result = spawnSync(
+		process.execPath,
+		[
+			cli,
+			'run',
+			'--phase',
+			'check',
+			'--label',
+			'after interruption',
+			'--',
+			process.execPath,
+			'-e',
+			'process.exit(0)',
+		],
+		{ cwd, encoding: 'utf8', timeout: 1000 },
+	)
+	assert.equal(result.status, 0, result.stderr)
+	assert.match(summary(cwd), /after interruption/)
 })
 
 test('native Vitest distinguishes passed, failed, skipped and todo tests', () => {
@@ -317,7 +323,7 @@ test('reports name the starting commit and flag uncommitted tested source', () =
 	assert.equal(run(cwd).status, 0)
 	assert.equal(report(cwd).commit, head)
 	assert.equal(report(cwd).dirty, true)
-	assert.match(readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8'), /uncommitted changes/)
+	assert.match(summary(cwd), /uncommitted changes/)
 })
 
 test('collects package reports recursively while keeping baseline comparisons out of branch totals', () => {
@@ -338,7 +344,7 @@ test('a terminated command is recorded as interrupted with the conventional sign
 test('the portable summary action prints retained results without running tests again', () => {
 	const cwd = fixture("import {test} from 'node:test'; test('once',()=>{});\n")
 	run(cwd)
-	rmSync(join(cwd, '.os/test-results/latest.md'))
+	rmSync(join(cwd, '.os/test-results/latest.md'), { force: true })
 	const result = spawnSync(process.execPath, [cli, 'summary'], { cwd, encoding: 'utf8' })
 	assert.equal(result.status, 0)
 	assert.match(result.stdout, /1 passed/)
@@ -350,11 +356,11 @@ test('Markdown contains a bounded escaped list of failed tests', () => {
 		"import {test} from 'node:test'; for(let i=0;i<12;i++)test('bad|<img> @everyone '+i,()=>{throw Error('expected')});\n",
 	)
 	run(cwd)
-	const summary = readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8')
-	assert.match(summary, /bad&#124;&lt;img&gt;/)
-	assert.doesNotMatch(summary, /<img>|@everyone/)
-	assert.match(summary, /2 more failures/)
-	assert.ok(summary.length < 6000)
+	const text = summary(cwd)
+	assert.match(text, /bad&#124;&lt;img&gt;/)
+	assert.doesNotMatch(text, /<img>|@everyone/)
+	assert.match(text, /2 more failures/)
+	assert.ok(text.length < 6000)
 })
 
 test('an existing Node reporter is preserved rather than broken by adding another reporter', () => {
