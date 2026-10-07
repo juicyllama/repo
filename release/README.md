@@ -86,8 +86,11 @@ A successful dispatched workflow is not by itself a required branch check: GitHu
 `workflow_dispatch` job check runs as ruleset-required status checks. If the branch requires a named
 status, the repository's candidate workflow must publish that exact context on the candidate SHA,
 with `statuses: write`, from the actual validation result. Publish `pending` before validation and
-`success` only after it passes; a rejected candidate must publish `failure`. Treat a failed status
-write as a workflow failure. Keep the branch rule enabled and preserve the ordinary pull-request check.
+`success` only after it passes; a rejected candidate must publish `failure`. Use a final reporting
+step that also runs after validation errors or cancellation, publishing `failure` or `error` when
+validation did not pass. Hard termination can still prevent reporting; a pending status must never
+be treated as success, and the release runner must fail when its bounded wait expires. Treat a failed
+status write as a workflow failure. Keep the branch rule enabled and preserve the ordinary pull-request check.
 See [GitHub's required-status-check guidance](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
 
 Call `os-release-verify.yml` on PR opened, synchronize, reopened, edited, labeled and unlabeled events.
