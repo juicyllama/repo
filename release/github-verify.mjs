@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, realpathSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { git, verify } from './os-release.mjs'
 
@@ -54,7 +53,7 @@ export function main(root = process.cwd()) {
 	console.info(JSON.stringify(verify(root, context), null, 2))
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
 	try {
 		main()
 	} catch (error) {

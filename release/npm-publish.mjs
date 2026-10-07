@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { git } from './os-release.mjs'
@@ -77,7 +77,7 @@ export async function publish(root, dirs, { run = command, pause = sleep, ref = 
 	throw new Error(`Not all packages are visible at ${version}; rerun this release`)
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
 	publish(process.cwd(), process.argv.slice(2))
 		.then(result => {
 			for (const [key, value] of Object.entries(result)) {

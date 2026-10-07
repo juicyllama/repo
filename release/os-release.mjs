@@ -1,6 +1,15 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+	existsSync,
+	lstatSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs'
 import { dirname, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseDocument, stringify } from 'yaml'
@@ -370,7 +379,7 @@ export function cli(argv = process.argv.slice(2), root = process.cwd()) {
 		})
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
 	try {
 		cli()
 	} catch (error) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process'
-import { appendFileSync, existsSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { appendFileSync, existsSync, readFileSync, realpathSync } from 'node:fs'
+import { join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { git, loadConfig, planRelease } from './os-release.mjs'
@@ -207,7 +207,7 @@ export async function main() {
 	console.info(JSON.stringify(result))
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
 	main().catch(error => {
 		console.error(error.message)
 		process.exitCode = 1
