@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
 const cli = fileURLToPath(new URL('./os-test-report.mjs', import.meta.url))
@@ -239,6 +240,53 @@ test('retained report files do not make clean tested source dirty', () => {
 	assert.equal(JSON.parse(readFileSync(join(directory, latest, 'report.json'), 'utf8')).dirty, false)
 })
 
+test('concurrent finalizers wait for the summary writer and retain both command rows', async () => {
+	const cwd = fixture('')
+	const root = join(cwd, '.os/test-results')
+	mkdirSync(root, { recursive: true })
+	const lock = join(root, '.summary-lock')
+	mkdirSync(lock)
+	const children = ['first', 'second'].map(label => {
+		const child = spawn(
+			process.execPath,
+			[cli, 'run', '--phase', 'check', '--label', label, '--', process.execPath, '-e', 'process.exit(0)'],
+			{ cwd, stdio: 'ignore' },
+		)
+		const state = { closed: false, done: once(child, 'close') }
+		state.done.then(() => {
+			state.closed = true
+		})
+		return state
+	})
+	try {
+		for (
+			let attempt = 0;
+			attempt < 100 &&
+			readdirSync(root).filter(name => name !== '.summary-lock' && name !== 'latest.md').length < 2;
+			attempt++
+		)
+			await delay(20)
+		await delay(150)
+		assert.ok(
+			children.every(child => !child.closed),
+			'a finalizer must not write while another writer holds the lock',
+		)
+	} finally {
+		rmSync(lock, { recursive: true, force: true })
+	}
+	for (const child of children) assert.equal((await child.done)[0], 0)
+	const summary = readFileSync(join(root, 'latest.md'), 'utf8')
+	assert.match(summary, /\| first \|/)
+	assert.match(summary, /\| second \|/)
+})
+
+test('child arguments cannot disable the wrapper reporter', () => {
+	const cwd = fixture("import{test}from'node:test';test('passes',()=>{});")
+	const result = run(cwd, 'check', ['bash', '-c', 'node --test example.test.mjs', '--no-node-reporter'])
+	assert.equal(result.status, 0, result.stderr)
+	assert.equal(report(cwd).counts?.passed, 1)
+})
+
 test('native Vitest distinguishes passed, failed, skipped and todo tests', () => {
 	const cwd = fixture('')
 	const vitest = fileURLToPath(new URL('../node_modules/vitest/dist/index.js', import.meta.url))
@@ -290,6 +338,7 @@ test('a terminated command is recorded as interrupted with the conventional sign
 test('the portable summary action prints retained results without running tests again', () => {
 	const cwd = fixture("import {test} from 'node:test'; test('once',()=>{});\n")
 	run(cwd)
+	rmSync(join(cwd, '.os/test-results/latest.md'))
 	const result = spawnSync(process.execPath, [cli, 'summary'], { cwd, encoding: 'utf8' })
 	assert.equal(result.status, 0)
 	assert.match(result.stdout, /1 passed/)

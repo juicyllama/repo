@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { createWriteStream, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createWriteStream, mkdirSync, readdirSync, readFileSync, renameSync, rmdirSync, writeFileSync } from 'node:fs'
 import { constants } from 'node:os'
 import { join, relative } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
 function normalize(result) {
@@ -131,7 +132,20 @@ function readNativeReports(directory) {
 	return { native, warnings }
 }
 
-function writeLatest(cwd) {
+async function acquireSummaryLock(lock) {
+	const deadline = Date.now() + 5000
+	while (true) {
+		try {
+			mkdirSync(lock)
+			return
+		} catch (error) {
+			if (error.code !== 'EEXIST' || Date.now() >= deadline) throw error
+			await delay(20)
+		}
+	}
+}
+
+function latestReports(cwd) {
 	const latest = new Map()
 	for (const folder of readdirSync(join(cwd, '.os/test-results'), { withFileTypes: true })
 		.filter(entry => entry.isDirectory())
@@ -143,7 +157,20 @@ function writeLatest(cwd) {
 			/* A concurrent or interrupted run has no final report yet. */
 		}
 	}
-	writeFileSync(join(cwd, '.os/test-results/latest.md'), render([...latest.values()]))
+	return [...latest.values()]
+}
+
+async function writeLatest(cwd) {
+	const root = join(cwd, '.os/test-results')
+	const lock = join(root, '.summary-lock')
+	await acquireSummaryLock(lock)
+	try {
+		const temporary = join(root, `latest-${process.pid}.tmp`)
+		writeFileSync(temporary, render(latestReports(cwd)))
+		renameSync(temporary, join(root, 'latest.md'))
+	} finally {
+		rmdirSync(lock)
+	}
 }
 
 const argv = process.argv.slice(2)
@@ -153,7 +180,10 @@ const phase = options.includes('--phase') ? options[options.indexOf('--phase') +
 const label = options.includes('--label') ? options[options.indexOf('--label') + 1] : null
 if (argv[0] === 'summary') {
 	try {
-		process.stdout.write(readFileSync(join(process.cwd(), '.os/test-results/latest.md'), 'utf8'))
+		const reports = latestReports(process.cwd())
+		process.stdout.write(
+			reports.length > 0 ? render(reports) : 'No test summary has been recorded in this workspace.\n',
+		)
 	} catch {
 		process.stdout.write('No test summary has been recorded in this workspace.\n')
 	}
@@ -183,7 +213,7 @@ if (argv[0] === 'summary') {
 	const reporter = fileURLToPath(new URL('./node-reporter.mjs', import.meta.url))
 	const nodeOptions = process.env.NODE_OPTIONS || ''
 	const customReporter =
-		argv.includes('--no-node-reporter') ||
+		options.includes('--no-node-reporter') ||
 		nodeOptions.includes('--test-reporter') ||
 		argv.slice(separator + 1).some(arg => arg.startsWith('--test-reporter'))
 	const child = spawn(argv[separator + 1], argv.slice(separator + 2), {
@@ -227,7 +257,7 @@ if (argv[0] === 'summary') {
 		log.write(`${error.message}\n`)
 		console.error(error.message)
 	})
-	child.on('close', (childCode, childSignal) => {
+	child.on('close', async (childCode, childSignal) => {
 		process.off('SIGTERM', terminate)
 		process.off('SIGINT', interrupt)
 		const signal = interrupted ?? childSignal
@@ -264,7 +294,7 @@ if (argv[0] === 'summary') {
 			const summary = render([report])
 			writeFileSync(join(directory, 'report.json'), `${JSON.stringify(report, null, 2)}\n`)
 			writeFileSync(join(directory, 'summary.md'), summary)
-			writeLatest(cwd)
+			await writeLatest(cwd)
 			process.stdout.write(summary)
 		} catch (error) {
 			console.error(`Test reporting unavailable: ${error.message}`)
