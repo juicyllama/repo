@@ -3,8 +3,10 @@ import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { spec } from 'node:test/reporters'
 
+/** Retain native Node test evidence while preserving the standard console reporter. */
 export default async function* reporter(source) {
 	const failures = []
+	/** Observe runner events without changing their ordering or test outcome. */
 	async function* observe() {
 		for await (const event of source) {
 			if (

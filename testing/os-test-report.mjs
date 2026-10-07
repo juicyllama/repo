@@ -6,6 +6,7 @@ import { constants } from 'node:os'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+/** Convert one native runner report into counts and failed test names. */
 function normalize(result) {
 	if (result.runner === 'node')
 		return {
@@ -52,6 +53,7 @@ function normalize(result) {
 	}
 }
 
+/** Bound and escape a value for a single Markdown table cell. */
 function escaped(value) {
 	return String(value)
 		.slice(0, 240)
@@ -65,6 +67,7 @@ function escaped(value) {
 		.replace(/[[\]*_\\]/g, '\\$&')
 }
 
+/** Render compact test evidence with bounded failures, warnings and local log paths. */
 function render(reports) {
 	const rows = reports.map(r => {
 		const counts = r.counts
@@ -85,6 +88,7 @@ function render(reports) {
 	return `### Test results\n\n| Phase | Command | Result | Duration | Commit |\n| --- | --- | --- | --- | --- |\n${rows.join('\n')}\n${details}\n${reports.map(r => `Full log (${r.phase}, workspace file): \`${r.logPath}\``).join('\n')}\n${warnings.length > 0 ? `\nReporting warnings: ${warnings.slice(0, 5).join('; ')}\n` : ''}`
 }
 
+/** Find native JSON reports recursively, excluding baseline comparisons. */
 function reportFiles(directory) {
 	return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
 		if (entry.name === 'baseline') return []
@@ -94,6 +98,7 @@ function reportFiles(directory) {
 	})
 }
 
+/** Classify the command result without treating absent evidence as passing tests. */
 function classify(taskPhase, code, signal, reportCount, counts, warnings) {
 	if (signal) return 'interrupted'
 	const special = {
@@ -109,6 +114,7 @@ function classify(taskPhase, code, signal, reportCount, counts, warnings) {
 	return reportCount > 0 ? 'passed' : 'no_test_results'
 }
 
+/** Parse recognized runner reports and retain warnings for unusable evidence. */
 function readNativeReports(directory) {
 	const native = []
 	const warnings = []
@@ -138,6 +144,7 @@ function readNativeReports(directory) {
 	return { native, warnings }
 }
 
+/** Read the newest completed report for each phase and command pair. */
 function latestReports(cwd) {
 	const latest = new Map()
 	for (const folder of readdirSync(join(cwd, '.os/test-results'), { withFileTypes: true })
@@ -208,6 +215,7 @@ if (argv[0] === 'summary') {
 		stdio: ['inherit', 'pipe', 'pipe'],
 	})
 	let interrupted
+	/** Forward interruption to the child process group and retain its signal. */
 	const forwardSignal = signal => {
 		interrupted = signal
 		if (!child.pid) return
