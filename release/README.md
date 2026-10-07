@@ -56,7 +56,9 @@ Several pending files produce one bump at the highest level and one stamped note
 are distinct even when several notes land together. Notes receive timestamps in filename order,
 after existing notes, so OpenChangelog pagination and publication order agree. If a same-minute
 version change would sort backwards, only the new note advances to the next minute; historical
-filenames and timestamps stay unchanged. `.release/latest.json` records recovery evidence.
+filenames and timestamps stay unchanged. If a historical filename still sorts after that advanced
+path, planning fails before writing files and identifies the inconsistent filename/publishedAt.
+`.release/latest.json` records recovery evidence.
 
 ## GitHub Actions
 

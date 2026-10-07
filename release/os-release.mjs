@@ -313,6 +313,11 @@ export function planRelease(root, now = new Date()) {
 					second = (Math.floor(second / 60) + 1) * 60
 					path = notePath(config, version, suffix, second)
 				}
+				if (path <= previousPath) {
+					throw new ReleaseError(
+						`Inconsistent historical note chronology: ${previousPath}; check its filename and publishedAt`,
+					)
+				}
 				const publishedAt = new Date(second++ * 1000).toISOString().replace('.000Z', 'Z')
 				if (existsSync(file(root, path))) throw new ReleaseError(`Refusing to overwrite ${path}`)
 				previousPath = path

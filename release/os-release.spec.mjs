@@ -242,6 +242,21 @@ describe('CI-owned release apply', () => {
 		assert.match(note.content, /08:01:00Z/)
 		assert.ok(note.path > oldPath)
 	})
+	it('rejects inconsistent historical filename chronology before changing release files', () => {
+		const oldPath = 'release-notes/2026-10-07-0805.v1.2.3.previous.md'
+		const oldContent = '---\ntitle: Previous\npublishedAt: 2026-10-07T08:00:00Z\n---\nOld note\n'
+		write(oldPath, oldContent)
+		addIntent()
+		commit()
+		assert.throws(
+			() => apply(root, { now: new Date('2026-10-07T08:00:01Z') }),
+			/Inconsistent historical note chronology.*2026-10-07-0805/,
+		)
+		assert.equal(git(root, 'status', '--porcelain'), '')
+		assert.equal(JSON.parse(readFileSync(join(root, 'package.json'))).version, '1.2.3')
+		assert.equal(existsSync(join(root, '.release/pending/pr-12.md')), true)
+		assert.equal(readFileSync(join(root, oldPath), 'utf8'), oldContent)
+	})
 	it('does not fill an earlier timestamp gap behind an existing later note', () => {
 		for (const second of ['00', '02']) {
 			write(
