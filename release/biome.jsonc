@@ -1,0 +1,12 @@
+{
+	"root": false,
+	"extends": ["../biome.json"],
+	"linter": {
+		"rules": {
+			"suspicious": {
+				// These standalone CLIs run outside Turborepo and do not cache environment-dependent results.
+				"noUndeclaredEnvVars": "off"
+			}
+		}
+	}
+}

@@ -1,0 +1,36 @@
+name: Verify release intent
+on:
+  workflow_call:
+    inputs:
+      install-command:
+        required: true
+        type: string
+      node-version:
+        type: string
+        default: '24'
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+      - run: npm install --global corepack
+      - run: corepack enable
+      - name: Install tooling
+        env:
+          INSTALL_COMMAND: ${{ inputs.install-command }}
+        run: bash -e -o pipefail -c "$INSTALL_COMMAND"
+      - name: Verify this PR's intent against its labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm exec --ignore-scripts --yes --package=@juicyllama/repo@1.1.0 -- os-release-verify
