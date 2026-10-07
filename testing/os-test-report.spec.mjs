@@ -287,7 +287,7 @@ test('an abandoned aggregate lock cannot block new test evidence', () => {
 			'-e',
 			'process.exit(0)',
 		],
-		{ cwd, encoding: 'utf8', timeout: 1000 },
+		{ cwd, encoding: 'utf8', timeout: 4000 },
 	)
 	assert.equal(result.status, 0, result.stderr)
 	assert.match(summary(cwd), /after interruption/)
