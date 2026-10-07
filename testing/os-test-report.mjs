@@ -190,7 +190,7 @@ if (argv[0] === 'summary') {
 	const cwd = process.cwd()
 	const started = Date.now()
 	const git = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' })
-	const status = spawnSync('git', ['status', '--porcelain', '--', '.', ':(exclude).os/test-results'], {
+	const status = spawnSync('git', ['status', '--porcelain', '--', ':/', ':(exclude).os/test-results'], {
 		encoding: 'utf8',
 	})
 	const directory = join(cwd, '.os/test-results', `${started}-${phase}-${randomUUID().slice(0, 8)}`)

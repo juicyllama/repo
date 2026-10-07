@@ -264,6 +264,35 @@ test('retained report files do not make clean tested source dirty', () => {
 	assert.equal(JSON.parse(readFileSync(join(directory, latest, 'report.json'), 'utf8')).dirty, false)
 })
 
+test('package-directory runs include uncommitted shared source while excluding their own reports', () => {
+	const root = fixture('')
+	const cwd = join(root, 'pkg')
+	mkdirSync(cwd)
+	writeFileSync(join(root, 'shared.mjs'), 'export const value = 1;\n')
+	writeFileSync(
+		join(cwd, 'example.test.mjs'),
+		"import {test} from 'node:test'; import assert from 'node:assert/strict'; import {value} from '../shared.mjs'; test('shared source',()=>assert.ok(value > 0));\n",
+	)
+	for (const args of [
+		['init', '-q'],
+		['add', '.'],
+		['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', 'fixture'],
+	]) {
+		const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
+		assert.equal(result.status, 0, result.stderr)
+	}
+	const latest = () => {
+		const directory = join(cwd, '.os/test-results')
+		return JSON.parse(readFileSync(join(directory, readdirSync(directory).sort().at(-1), 'report.json'), 'utf8'))
+	}
+	assert.equal(run(cwd).status, 0)
+	assert.equal(run(cwd).status, 0)
+	assert.equal(latest().dirty, false)
+	writeFileSync(join(root, 'shared.mjs'), 'export const value = 2;\n')
+	assert.equal(run(cwd).status, 0)
+	assert.equal(latest().dirty, true)
+})
+
 test('concurrent completed commands retain both rows in the aggregate', async () => {
 	const cwd = fixture('')
 	const children = ['first', 'second'].map(label =>
