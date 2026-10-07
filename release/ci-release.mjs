@@ -72,7 +72,7 @@ export async function ensureTag(root, version, sha, pause = sleep) {
 export async function waitForCi(
 	root,
 	sha,
-	{ workflow = process.env.RELEASE_CI_WORKFLOW ?? 'ci.yml', timeoutMs = 1_200_000, pause = sleep } = {},
+	{ workflow = process.env.RELEASE_CI_WORKFLOW ?? 'ci.yml', timeoutMs = 1_800_000, pause = sleep } = {},
 ) {
 	const deadline = Date.now() + timeoutMs
 	while (Date.now() < deadline) {

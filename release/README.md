@@ -63,6 +63,8 @@ and grant `contents: write`, `actions: read`. Pin the reusable workflow to a rev
 The shared package version referenced by the workflow must be published before adoption.
 Do not use `os-release-main` as a caller concurrency group: that is the called workflow's serial lock.
 CI must not cancel older main runs; the release runner checks the newest main SHA and waits for that SHA.
+It waits up to 30 minutes for CI within the release job's 45-minute limit, leaving time for release setup,
+commit hooks and tagging after longer browser suites finish.
 
 The runner re-plans after a concurrent merge, pushes main first, then retries tagging the accepted commit.
 It refuses to replace a tag belonging to main. Orphan cleanup is restricted to commits demonstrably
