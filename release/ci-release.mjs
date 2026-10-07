@@ -215,8 +215,12 @@ async function checkCandidateBeforePush(root, version, sha, sourceSha, attempt, 
 		await checkCandidate(version, sha)
 		return true
 	} catch (error) {
-		git(root, 'fetch', 'origin', 'main')
-		if (git(root, 'rev-parse', 'origin/main') !== sourceSha && attempt < 2) return false
+		try {
+			git(root, 'fetch', 'origin', 'main')
+			if (git(root, 'rev-parse', 'origin/main') !== sourceSha && attempt < 2) return false
+		} catch {
+			/* Preserve the candidate failure when the remote is unavailable. */
+		}
 		throw error
 	}
 }

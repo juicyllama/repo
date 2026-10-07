@@ -279,3 +279,20 @@ it('replans a candidate rejected after another merge advances main', async () =>
 	assert.equal(git(remote, 'rev-parse', 'main'), result.sha)
 	assert.deepEqual(JSON.parse(readFileSync(join(root, '.release/latest.json'))).prs, [1, 2])
 })
+
+it('preserves the candidate failure when checking current main also fails', async () => {
+	await assert.rejects(
+		release(
+			root,
+			options({
+				checkCandidate: async () => {
+					git(root, 'remote', 'set-url', 'origin', join(root, 'unavailable-remote'))
+					throw new Error('Candidate check ended failure')
+				},
+			}),
+		),
+		/Candidate check ended failure/,
+	)
+	assert.equal(git(remote, 'rev-parse', 'main'), source)
+	assert.equal(git(remote, 'tag'), '')
+})
