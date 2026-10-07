@@ -112,7 +112,13 @@ function classify(taskPhase, code, signal, reportCount, counts, warnings) {
 function readNativeReports(directory) {
 	const native = []
 	const warnings = []
-	for (const path of reportFiles(directory)) {
+	let paths
+	try {
+		paths = reportFiles(directory)
+	} catch {
+		return { native, warnings: ['Test reporting unavailable: cannot read native report directory'] }
+	}
+	for (const path of paths) {
 		try {
 			const value = normalize(JSON.parse(readFileSync(path, 'utf8')))
 			if (Object.values(value.counts).some(count => !Number.isSafeInteger(count) || count < 0))
@@ -132,7 +138,7 @@ function writeLatest(cwd) {
 		.sort((a, b) => a.name.localeCompare(b.name))) {
 		try {
 			const previous = JSON.parse(readFileSync(join(cwd, '.os/test-results', folder.name, 'report.json'), 'utf8'))
-			latest.set(previous.command, previous)
+			latest.set(JSON.stringify([previous.phase, previous.command]), previous)
 		} catch {
 			/* A concurrent or interrupted run has no final report yet. */
 		}
@@ -167,7 +173,9 @@ if (argv[0] === 'summary') {
 	const cwd = process.cwd()
 	const started = Date.now()
 	const git = spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' })
-	const status = spawnSync('git', ['status', '--porcelain'], { encoding: 'utf8' })
+	const status = spawnSync('git', ['status', '--porcelain', '--', '.', ':(exclude).os/test-results'], {
+		encoding: 'utf8',
+	})
 	const directory = join(cwd, '.os/test-results', `${started}-${phase}-${randomUUID().slice(0, 8)}`)
 	const reports = join(directory, 'native')
 	mkdirSync(reports, { recursive: true })

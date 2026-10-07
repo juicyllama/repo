@@ -46,7 +46,7 @@ test('an unavailable reporting directory does not replace the command exit statu
 		"require('node:fs').rmSync(process.env.OS_TEST_REPORT_DIR,{recursive:true,force:true});process.exit(6)",
 	])
 	assert.equal(result.status, 6)
-	assert.match(result.stderr, /Test reporting unavailable/)
+	assert.match(result.stdout + result.stderr, /Test reporting unavailable/)
 })
 
 test('termination reaches the test command and leaves an interrupted report', async () => {
@@ -102,6 +102,28 @@ test('a failing RED execution retains its exit code and names the failed test', 
 	assert.equal(actual.counts.failed, 1)
 	assert.equal(actual.outcome, 'tests_failed')
 	assert.ok(actual.failures.some(failure => failure.name === 'rejects an invalid charge'))
+})
+
+test('expected Node todo failures are not listed as failed tests', () => {
+	const cwd = fixture(
+		"import {test} from 'node:test'; test('passes',()=>{}); test.todo('future',()=>{throw Error('expected')});",
+	)
+	assert.equal(run(cwd).status, 0)
+	const actual = report(cwd)
+	assert.equal(actual.counts.failed, 0)
+	assert.equal(actual.counts.todo, 1)
+	assert.deepEqual(actual.failures, [])
+	assert.doesNotMatch(readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8'), /Failed tests:/)
+})
+
+test('a native report write failure cannot turn a passing Node test into a command failure', () => {
+	const cwd = fixture(
+		"import {test} from 'node:test'; import{rmSync}from'node:fs'; test('passes',()=>rmSync(process.env.OS_TEST_REPORT_DIR,{recursive:true,force:true}));",
+	)
+	const result = run(cwd)
+	assert.equal(result.status, 0, result.stderr)
+	assert.equal(report(cwd).counts, null)
+	assert.equal(report(cwd).reportComplete, false)
 })
 
 test('preflight, baseline and environment failures keep their distinct status without fabricated test counts', () => {
@@ -176,6 +198,45 @@ test('sequential phases keep separate rows, and rerunning a phase updates its ro
 	const summary = readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8')
 	assert.match(summary, /\| red \|/)
 	assert.equal(summary.split('| check |').length - 1, 1)
+})
+
+test('identical command labels retain distinct RED and check evidence', () => {
+	const cwd = fixture("import{test}from'node:test';test('passes',()=>{});")
+	for (const phase of ['red', 'check']) {
+		const env = { ...process.env }
+		delete env.NODE_TEST_CONTEXT
+		assert.equal(
+			spawnSync(
+				process.execPath,
+				[cli, 'run', '--phase', phase, '--label', 'same command', '--', 'node', '--test', 'example.test.mjs'],
+				{ cwd, env },
+			).status,
+			0,
+		)
+	}
+	const summary = readFileSync(join(cwd, '.os/test-results/latest.md'), 'utf8')
+	assert.match(summary, /\| red \|/)
+	assert.match(summary, /\| check \|/)
+})
+
+test('retained report files do not make clean tested source dirty', () => {
+	const cwd = fixture("import{test}from'node:test';test('passes',()=>{});")
+	for (const args of [
+		['init'],
+		['add', '.'],
+		['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'fixture'],
+	]) {
+		assert.equal(spawnSync('git', args, { cwd }).status, 0)
+	}
+	assert.equal(run(cwd).status, 0)
+	assert.equal(run(cwd).status, 0)
+	const directory = join(cwd, '.os/test-results')
+	const latest = readdirSync(directory, { withFileTypes: true })
+		.filter(entry => entry.isDirectory())
+		.map(entry => entry.name)
+		.sort()
+		.at(-1)
+	assert.equal(JSON.parse(readFileSync(join(directory, latest, 'report.json'), 'utf8')).dirty, false)
 })
 
 test('native Vitest distinguishes passed, failed, skipped and todo tests', () => {
