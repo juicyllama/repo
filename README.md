@@ -134,6 +134,16 @@ export default nextConfig
 
 `os-deps` is the set of repo commands a Zero Human dependency-refresh task calls: what is out of date, how a bump is applied, and whether anything resolved lower. It reads a pnpm or an npm lockfile. See [deps/README.md](./deps/README.md) for the `mise.toml` tasks to add.
 
+## Release intents
+
+`os-release` lets an opted-in repository keep release copy on the pull request while CI owns versioning,
+tags and delivery. The optional `os:release` and `os:release:verify` workspace tasks report and validate
+the contract; the CI-only `release` task consumes pending intents after merge. See
+[release/README.md](./release/README.md) for configuration, reusable workflows and recovery behavior.
+
+Installing this package does not opt a repository in. A repository without the `os:release` task keeps
+its existing release process, and the release-note task leaves its pull request unchanged.
+
 ## Husky
 
 The package will copy over .husky folder if it does not already exist with a recommended default setup.
