@@ -72,12 +72,20 @@ export async function ensureTag(root, version, sha, pause = sleep) {
 export async function waitForCi(
 	root,
 	sha,
-	{ workflow = process.env.RELEASE_CI_WORKFLOW ?? 'ci.yml', timeoutMs = 1_800_000, pause = sleep } = {},
+	{
+		workflow = process.env.RELEASE_CI_WORKFLOW ?? 'ci.yml',
+		event = 'push',
+		branch,
+		afterRunId = 0,
+		timeoutMs = 1_800_000,
+		pause = sleep,
+		command = run,
+	} = {},
 ) {
 	const deadline = Date.now() + timeoutMs
 	while (Date.now() < deadline) {
 		const runs = JSON.parse(
-			run(root, 'gh', [
+			command(root, 'gh', [
 				'run',
 				'list',
 				'--workflow',
@@ -85,14 +93,18 @@ export async function waitForCi(
 				'--commit',
 				sha,
 				'--event',
-				'push',
+				event,
 				'--limit',
 				'100',
 				'--json',
-				'headSha,status,conclusion,databaseId',
+				'headSha,headBranch,status,conclusion,databaseId',
 			]),
 		)
-		const current = runs.filter(item => item.headSha === sha).sort((a, b) => b.databaseId - a.databaseId)[0]
+		const current = runs
+			.filter(
+				item => item.headSha === sha && item.databaseId > afterRunId && (!branch || item.headBranch === branch),
+			)
+			.sort((a, b) => b.databaseId - a.databaseId)[0]
 		if (current?.status === 'completed') {
 			if (current.conclusion !== 'success')
 				throw new Error(`CI ${workflow} for ${sha} ended ${current.conclusion}`)
@@ -101,6 +113,46 @@ export async function waitForCi(
 		await pause(10_000)
 	}
 	throw new Error(`Timed out waiting for CI ${workflow} on ${sha}; no release was cut`)
+}
+
+export async function validateCandidate(root, version, sha, { workflow, command = run, pause = sleep } = {}) {
+	if (!VERSION.test(version) || !SHA.test(sha)) throw new Error('Invalid release candidate version or SHA')
+	if (!/^[A-Za-z0-9_][\w.-]*\.ya?ml$/.test(workflow ?? ''))
+		throw new Error('Candidate check must name a workflow YAML file')
+	const branch = `os-release/v${version}-${sha.slice(0, 12)}`
+	const ref = `refs/heads/${branch}`
+	const existing = git(root, 'ls-remote', 'origin', ref).split(/\s/)[0]
+	if (existing && existing !== sha) throw new Error(`Refusing to replace candidate ${branch}`)
+	if (!existing) git(root, 'push', 'origin', `${sha}:${ref}`)
+	const previous = JSON.parse(
+		command(root, 'gh', [
+			'run',
+			'list',
+			'--workflow',
+			workflow,
+			'--commit',
+			sha,
+			'--event',
+			'workflow_dispatch',
+			'--limit',
+			'100',
+			'--json',
+			'headSha,headBranch,status,conclusion,databaseId',
+		]),
+	)
+	const afterRunId = Math.max(0, ...previous.map(item => item.databaseId))
+	// Pushes made with GITHUB_TOKEN do not start workflows, so explicitly dispatch the
+	// repository's check and accept only a fresh result for this exact candidate ref/SHA.
+	command(root, 'gh', ['workflow', 'run', workflow, '--ref', branch])
+	await waitForCi(root, sha, {
+		workflow,
+		event: 'workflow_dispatch',
+		branch,
+		afterRunId,
+		command,
+		pause,
+		timeoutMs: 1_200_000,
+	})
 }
 
 export function recovery(root, { triggerSha, manual = false } = {}) {
@@ -158,6 +210,17 @@ async function recoverOrSkip(root, plan, sourceSha, options, checkCi, publishTag
 	return previous
 }
 
+async function checkCandidateBeforePush(root, version, sha, sourceSha, attempt, checkCandidate) {
+	try {
+		await checkCandidate(version, sha)
+		return true
+	} catch (error) {
+		git(root, 'fetch', 'origin', 'main')
+		if (git(root, 'rev-parse', 'origin/main') !== sourceSha && attempt < 2) return false
+		throw error
+	}
+}
+
 export async function release(root, options = {}) {
 	const checkCi = options.checkCi ?? (sha => waitForCi(root, sha))
 	const setup =
@@ -169,6 +232,12 @@ export async function release(root, options = {}) {
 		})
 	const applyRelease = options.applyRelease ?? (() => run(root, 'mise', ['run', 'release']))
 	const publishTag = options.publishTag ?? ((version, sha) => ensureTag(root, version, sha))
+	const checkCandidate =
+		options.checkCandidate ??
+		(async (version, sha) => {
+			if (process.env.RELEASE_CANDIDATE_WORKFLOW)
+				await validateCandidate(root, version, sha, { workflow: process.env.RELEASE_CANDIDATE_WORKFLOW })
+		})
 	if (git(root, 'status', '--porcelain', '--untracked-files=all'))
 		throw new Error('CI release requires an initially clean checkout')
 	for (let attempt = 0; attempt < 3; attempt++) {
@@ -184,6 +253,7 @@ export async function release(root, options = {}) {
 		git(root, 'fetch', 'origin', 'main')
 		if (git(root, 'rev-parse', 'origin/main') !== sourceSha) continue
 		const sha = await prepareCommit(root, sourceSha, plan, setup, applyRelease)
+		if (!(await checkCandidateBeforePush(root, plan.version, sha, sourceSha, attempt, checkCandidate))) continue
 		if (!pushMain(root, sha, sourceSha, attempt)) continue
 		await publishTag(plan.version, sha)
 		return { released: true, version: plan.version, sha, sourceSha }

@@ -11,6 +11,10 @@ on:
         description: Workflow filename whose push run must pass on the exact source commit
         required: true
         type: string
+      candidate-check-workflow:
+        description: Optional repository workflow to dispatch on the exact generated release commit before pushing main
+        type: string
+        default: ''
       node-version:
         type: string
         default: '24'
@@ -28,7 +32,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 # The caller must not use this same concurrency group: that would deadlock the called job.
 concurrency:
@@ -47,6 +51,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_CI_WORKFLOW: ${{ inputs.ci-workflow }}
+      RELEASE_CANDIDATE_WORKFLOW: ${{ inputs.candidate-check-workflow }}
       RELEASE_INSTALL_COMMAND: ${{ inputs.install-command }}
     steps:
       - uses: actions/checkout@v4
@@ -71,4 +76,4 @@ jobs:
         run: bash -e -o pipefail -c "$RELEASE_INSTALL_COMMAND"
       - name: Release validated main
         id: release
-        run: npm exec --ignore-scripts --yes --package=@juicyllama/repo@1.1.0 -- os-release-ci
+        run: npm exec --ignore-scripts --yes --package=@juicyllama/repo@1.1.1 -- os-release-ci
