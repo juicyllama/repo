@@ -22,7 +22,7 @@
 	"scripts": {
 		"build": "tsc",
 		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs && node ./.husky/sync.mjs",
-		"test": "node --test deps/os-deps.spec.mjs"
+		"test": "node --test deps/os-deps.spec.mjs release/*.spec.mjs"
 	},
 	"exports": {
 		"./biome": "./biome.json",
@@ -50,7 +50,11 @@
 		}
 	},
 	"bin": {
-		"os-deps": "./deps/os-deps.mjs"
+		"os-deps": "./deps/os-deps.mjs",
+		"os-release": "./release/os-release.mjs",
+		"os-release-ci": "./release/ci-release.mjs",
+		"os-release-verify": "./release/github-verify.mjs",
+		"os-release-publish": "./release/npm-publish.mjs"
 	},
 	"dependencies": {
 		"@jest/globals": "^30.4.1",
@@ -65,7 +69,8 @@
 		"ts-node": "^10.9.2",
 		"tsconfig-paths": "^4.2.0",
 		"turbo": "^2.9.18",
-		"typescript": "^6.0.3"
+		"typescript": "^6.0.3",
+		"yaml": "^2.9.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.10",

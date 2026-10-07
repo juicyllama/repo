@@ -1,0 +1,66 @@
+name: OS release
+
+on:
+  workflow_call:
+    inputs:
+      install-command:
+        description: Repository-owned frozen dependency installation command
+        required: true
+        type: string
+      ci-workflow:
+        description: Workflow filename whose push run must pass on the exact source commit
+        required: true
+        type: string
+      node-version:
+        type: string
+        default: '24'
+    outputs:
+      released:
+        value: ${{ jobs.release.outputs.released }}
+      version:
+        value: ${{ jobs.release.outputs.version }}
+      sha:
+        value: ${{ jobs.release.outputs.sha }}
+
+permissions:
+  contents: write
+  actions: read
+
+# The caller must not use this same concurrency group: that would deadlock the called job.
+concurrency:
+  group: os-release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      version: ${{ steps.release.outputs.version }}
+      sha: ${{ steps.release.outputs.sha }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_CI_WORKFLOW: ${{ inputs.ci-workflow }}
+      RELEASE_INSTALL_COMMAND: ${{ inputs.install-command }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+      - run: npm install --global corepack
+      - run: corepack enable
+      - uses: jdx/mise-action@v4
+        with:
+          install: false
+          cache: false
+      - name: Install release tooling
+        shell: bash
+        run: bash -e -o pipefail -c "$RELEASE_INSTALL_COMMAND"
+      - name: Release validated main
+        id: release
+        run: npm exec --ignore-scripts --yes --package=@juicyllama/repo@1.1.0 -- os-release-ci
