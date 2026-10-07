@@ -8,11 +8,13 @@ import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const cli = fileURLToPath(new URL('./os-test-report.mjs', import.meta.url))
+/** Create an isolated native-test fixture. */
 function fixture(source) {
 	const cwd = mkdtempSync(join(tmpdir(), 'os-test-report-'))
 	writeFileSync(join(cwd, 'example.test.mjs'), source)
 	return cwd
 }
+/** Execute the real wrapper with the supplied command and phase. */
 function run(cwd, phase = 'check', args = ['node', '--test', 'example.test.mjs'], overrides = {}) {
 	const env = { ...process.env, ...overrides }
 	delete env.NODE_TEST_CONTEXT
@@ -23,12 +25,14 @@ function run(cwd, phase = 'check', args = ['node', '--test', 'example.test.mjs']
 		{ cwd, env, encoding: 'utf8' },
 	)
 }
+/** Read the evidence from a fixture containing one completed run. */
 function report(cwd) {
 	const root = join(cwd, '.os/test-results')
 	const folder = readdirSync(root).find(name => name !== 'latest.md')
 	return JSON.parse(readFileSync(join(root, folder, 'report.json'), 'utf8'))
 }
 
+/** Read the aggregate through the portable CLI without rerunning tests. */
 function summary(cwd) {
 	const result = spawnSync(process.execPath, [cli, 'summary'], { cwd, encoding: 'utf8' })
 	assert.equal(result.status, 0, result.stderr)

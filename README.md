@@ -19,6 +19,8 @@ os-test-report run --phase check --label 'mise run os:check' -- npm run test
 os-test-report summary
 ```
 
+Add `.os/test-results/` to the consumer repository’s `.gitignore`; the wrapper does not edit ignore rules.
+
 The wrapper prints a compact Markdown summary and retains JSON evidence and full output under the ignored `.os/test-results/` directory. The `summary` action reads completed per-run reports on demand, so concurrent and interrupted runs cannot overwrite another run’s evidence. Each phase and command pair keeps its latest row, with phase, native pass/fail/skip/todo counts, duration, exit status, starting commit and any uncommitted changes. Failure names are escaped and limited to ten. Malformed JSON and unrecognized native report formats produce distinct warnings. RED failures, baseline failures (6), environment failures (7), interrupted commands and absent results remain distinct; no report is never reported as zero passing tests.
 
 Node's test runner is captured automatically unless an existing reporter is configured. Use `--no-node-reporter` when the repository owns its Node reporter. For Jest, Vitest and Playwright, retain the console reporter and write their native JSON under `OS_TEST_REPORT_DIR`, using a unique filename per runner process. Baseline comparisons must write under a `baseline/` subdirectory or disable capture. Turbo tasks must pass through `OS_TEST_REPORT_DIR`, `OS_TEST_REPORT_RUN` and `NODE_OPTIONS`; cached tasks without fresh reports cannot supply fresh counts.
