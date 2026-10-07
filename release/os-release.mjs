@@ -252,8 +252,8 @@ function pending(root, config) {
 		})
 }
 
-function existingTimestamps(root, config) {
-	const occupied = new Set()
+function existingNotes(root, config) {
+	const notes = []
 	if (config.notes.enabled && existsSync(file(root, config.notes.path))) {
 		for (const name of readdirSync(file(root, config.notes.path)).filter(x => x.endsWith('.md'))) {
 			const text = readFileSync(file(root, `${config.notes.path}/${name}`), 'utf8')
@@ -263,10 +263,25 @@ function existingTimestamps(root, config) {
 			if (doc.errors.length > 0) throw new ReleaseError(`Invalid existing note: ${name}`)
 			const date = Date.parse(String(doc.toJS().publishedAt))
 			if (!Number.isFinite(date)) throw new ReleaseError(`Invalid existing publishedAt: ${name}`)
-			occupied.add(Math.floor(date / 1000))
+			notes.push({ path: `${config.notes.path}/${name}`, second: Math.floor(date / 1000) })
 		}
 	}
-	return occupied
+	return notes
+}
+
+function noteSuffix(intent) {
+	const slug =
+		intent.title
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-|-$/g, '')
+			.slice(0, 90) || 'release'
+	return `${slug}-pr-${intent.pr}.md`
+}
+
+function notePath(config, version, suffix, second) {
+	const stamp = new Date(second * 1000).toISOString().slice(0, 16).replace('T', '-').replace(':', '')
+	return `${config.notes.path}/${stamp}.v${version}.${suffix}`
 }
 
 export function planRelease(root, now = new Date()) {
@@ -276,22 +291,36 @@ export function planRelease(root, now = new Date()) {
 	if (intents.length === 0) return { released: false, version: current, intents: [], notes: [] }
 	const bump = LEVELS[Math.max(...intents.map(intent => LEVELS.indexOf(intent.bump)))]
 	const version = nextVersion(current, bump)
-	const occupied = existingTimestamps(root, config)
 	let second = Math.floor(now.getTime() / 1000)
 	if (!Number.isFinite(second)) throw new ReleaseError('Invalid release time')
+	let previousPath = ''
+	for (const note of existingNotes(root, config)) {
+		second = Math.max(second, note.second + 1)
+		if (note.path > previousPath) previousPath = note.path
+	}
+	const ordered = (config.notes.enabled ? intents : [])
+		.map(intent => ({ intent, suffix: noteSuffix(intent) }))
+		.sort((a, b) => {
+			if (a.suffix < b.suffix) return -1
+			return a.suffix > b.suffix ? 1 : 0
+		})
 	const notes = config.notes.enabled
-		? intents.map(intent => {
-				while (occupied.has(second)) second++
+		? ordered.map(({ intent, suffix }) => {
+				let path = notePath(config, version, suffix, second)
+				// Same-minute version strings can sort backwards (for example 1.2.9 -> 1.2.10).
+				// Leave historical files intact and move only the new note to the next minute.
+				if (path <= previousPath) {
+					second = (Math.floor(second / 60) + 1) * 60
+					path = notePath(config, version, suffix, second)
+				}
+				if (path <= previousPath) {
+					throw new ReleaseError(
+						`Inconsistent historical note chronology: ${previousPath}; check its filename and publishedAt`,
+					)
+				}
 				const publishedAt = new Date(second++ * 1000).toISOString().replace('.000Z', 'Z')
-				const stamp = publishedAt.slice(0, 16).replace('T', '-').replace(':', '')
-				const slug =
-					intent.title
-						.toLowerCase()
-						.replace(/[^a-z0-9]+/g, '-')
-						.replace(/^-|-$/g, '')
-						.slice(0, 90) || 'release'
-				const path = `${config.notes.path}/${stamp}.v${version}.${slug}-pr-${intent.pr}.md`
 				if (existsSync(file(root, path))) throw new ReleaseError(`Refusing to overwrite ${path}`)
+				previousPath = path
 				const meta = {
 					title: `v${version} - ${intent.title}`,
 					description: intent.description,

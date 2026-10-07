@@ -195,6 +195,78 @@ describe('CI-owned release apply', () => {
 		commit()
 		assert.match(planRelease(root, new Date('2026-10-07T08:00:00Z')).notes[0].content, /08:00:01Z/)
 	})
+	it('orders reverse-title batches by filename before allocating publication seconds', () => {
+		write('.release/pending/pr-12.md', intent('patch', 'Zebra fixes'))
+		write('.release/pending/pr-13.md', intent('patch', 'Alpha fixes'))
+		const plan = planRelease(root, new Date('2026-10-07T08:00:00Z'))
+		assert.deepEqual(
+			plan.intents.map(item => item.pr),
+			[12, 13],
+		)
+		assert.deepEqual(
+			plan.notes.map(note => note.path),
+			[
+				'release-notes/2026-10-07-0800.v1.2.4.alpha-fixes-pr-13.md',
+				'release-notes/2026-10-07-0800.v1.2.4.zebra-fixes-pr-12.md',
+			],
+		)
+		assert.match(plan.notes[0].content, /08:00:00Z/)
+		assert.match(plan.notes[1].content, /08:00:01Z/)
+	})
+	it('preserves chronological filename order across a batch minute rollover', () => {
+		write('.release/pending/pr-12.md', intent('patch', 'Zebra fixes'))
+		write('.release/pending/pr-13.md', intent('patch', 'Alpha fixes'))
+		const notes = planRelease(root, new Date('2026-10-07T08:00:59Z')).notes
+		assert.match(notes[0].path, /0800\.v1\.2\.4\.alpha/)
+		assert.match(notes[0].content, /08:00:59Z/)
+		assert.match(notes[1].path, /0801\.v1\.2\.4\.zebra/)
+		assert.match(notes[1].content, /08:01:00Z/)
+	})
+	it('places new notes after the latest existing second even when the clock is behind', () => {
+		const oldPath = 'release-notes/2026-10-07-0805.v1.2.3.previous.md'
+		const oldContent = '---\ntitle: Previous\npublishedAt: 2026-10-07T08:05:40Z\n---\nOld note\n'
+		write(oldPath, oldContent)
+		addIntent()
+		const note = planRelease(root, new Date('2026-10-07T08:00:00Z')).notes[0]
+		assert.match(note.content, /08:05:41Z/)
+		assert.ok(note.path > oldPath)
+		assert.equal(readFileSync(join(root, oldPath), 'utf8'), oldContent)
+	})
+	it('advances one minute when a new version would sort before the previous filename', () => {
+		write('package.json', '{"version":"1.2.9"}\n')
+		const oldPath = 'release-notes/2026-10-07-0800.v1.2.9.previous.md'
+		write(oldPath, '---\ntitle: Previous\npublishedAt: 2026-10-07T08:00:30Z\n---\nOld note\n')
+		addIntent()
+		const note = planRelease(root, new Date('2026-10-07T08:00:30Z')).notes[0]
+		assert.match(note.path, /0801\.v1\.2\.10\./)
+		assert.match(note.content, /08:01:00Z/)
+		assert.ok(note.path > oldPath)
+	})
+	it('rejects inconsistent historical filename chronology before changing release files', () => {
+		const oldPath = 'release-notes/2026-10-07-0805.v1.2.3.previous.md'
+		const oldContent = '---\ntitle: Previous\npublishedAt: 2026-10-07T08:00:00Z\n---\nOld note\n'
+		write(oldPath, oldContent)
+		addIntent()
+		commit()
+		assert.throws(
+			() => apply(root, { now: new Date('2026-10-07T08:00:01Z') }),
+			/Inconsistent historical note chronology.*2026-10-07-0805/,
+		)
+		assert.equal(git(root, 'status', '--porcelain'), '')
+		assert.equal(JSON.parse(readFileSync(join(root, 'package.json'))).version, '1.2.3')
+		assert.equal(existsSync(join(root, '.release/pending/pr-12.md')), true)
+		assert.equal(readFileSync(join(root, oldPath), 'utf8'), oldContent)
+	})
+	it('does not fill an earlier timestamp gap behind an existing later note', () => {
+		for (const second of ['00', '02']) {
+			write(
+				`release-notes/2026-10-07-0800.v1.2.3.previous-${second}.md`,
+				`---\ntitle: Previous\npublishedAt: 2026-10-07T08:00:${second}Z\n---\nOld note\n`,
+			)
+		}
+		addIntent()
+		assert.match(planRelease(root, new Date('2026-10-07T08:00:00Z')).notes[0].content, /08:00:03Z/)
+	})
 	it('validates all intents before bumping or consuming any', () => {
 		addIntent()
 		write('.release/pending/pr-13.md', 'invalid')
