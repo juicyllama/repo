@@ -10,6 +10,23 @@
 
 A package for repo configuration helpers
 
+## Test summaries for pull requests
+
+`os-test-report` wraps a repository's existing verification command and preserves its exit status:
+
+```sh
+os-test-report run --phase check --label 'mise run os:check' -- npm run test
+os-test-report summary
+```
+
+Add `.os/test-results/` to the consumer repository’s `.gitignore`; the wrapper does not edit ignore rules.
+
+The wrapper prints a compact Markdown summary and retains JSON evidence and full output under the ignored `.os/test-results/` directory. The `summary` action reads completed per-run reports on demand, so concurrent and interrupted runs cannot overwrite another run’s evidence. Each phase and command pair keeps its latest row, with phase, native pass/fail/skip/todo counts, duration, exit status, starting commit and any uncommitted changes. Failure names are escaped and limited to ten. Malformed JSON and unrecognized native report formats produce distinct warnings. RED failures, baseline failures (6), environment failures (7), interrupted commands and absent results remain distinct; no report is never reported as zero passing tests.
+
+Node's test runner is captured automatically unless an existing reporter is configured. Use `--no-node-reporter` when the repository owns its Node reporter. For Jest, Vitest and Playwright, retain the console reporter and write their native JSON under `OS_TEST_REPORT_DIR`, using a unique filename per runner process. Baseline comparisons must write under a `baseline/` subdirectory or disable capture. Turbo tasks must pass through `OS_TEST_REPORT_DIR`, `OS_TEST_REPORT_RUN` and `NODE_OPTIONS`; cached tasks without fresh reports cannot supply fresh counts.
+
+Expose `mise run os:test:summary` as the portable read-only entry point. OS tasks copy the emitted evidence into one maintained PR section, preserving separate RED/check/coverage results and the tested commit. Local log paths are workspace files, not durable download links; link actual run or CI artifacts when available. The CLI does not contact GitHub or change CI gates. An unavailable or malformed report never changes the tested command's exit status.
+
 ## Install
 
 ```bash

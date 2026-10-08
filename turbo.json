@@ -20,7 +20,12 @@
 			"dependsOn": ["^lint:fix"]
 		},
 		"test": {
-			"dependsOn": ["^build"]
+			"dependsOn": ["^build"],
+			"passThroughEnv": [
+				"OS_TEST_REPORT_DIR",
+				"OS_TEST_REPORT_RUN",
+				"NODE_OPTIONS"
+			]
 		},
 		"clean": {}
 	}
