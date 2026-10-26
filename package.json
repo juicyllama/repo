@@ -22,7 +22,7 @@
 	"scripts": {
 		"build": "tsc",
 		"postinstall": "node ./turbo/sync-turbo.mjs && node ./agentic/sync.mjs && node ./.husky/sync.mjs",
-		"test": "node --test deps/os-deps.spec.mjs release/*.spec.mjs testing/*.spec.mjs"
+		"test": "node --test deps/os-deps.spec.mjs deps/runtime.spec.mjs release/*.spec.mjs testing/*.spec.mjs"
 	},
 	"exports": {
 		"./biome": "./biome.json",

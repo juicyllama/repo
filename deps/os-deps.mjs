@@ -7,7 +7,7 @@
  * its `mise.toml` (see deps/README.md); the tasks that call them name no package manager.
  *
  *   os-deps report                    markdown: updates to apply, majors, and what could not be decided
- *   os-deps apply [--major] <name@version>...
+ *   os-deps apply [--major] <name@version>...   node@, pnpm@ and npm@ move every declaration of that runtime
  *   os-deps verify                    nothing resolves lower than on the commit the branch forked from
  *
  * Everything that decides a version is here, in code a test holds, and not in a task's skill: a model copies the
@@ -15,11 +15,27 @@
  * `node_modules`, so it sees the same thing on any machine, and it reads them per workspace package, because two
  * apps can hold one dependency at different majors. pnpm (`pnpm-lock.yaml`) and npm (`package-lock.json`, lockfile
  * version 2 or 3, no workspaces) are supported; a repository has exactly one of them.
+ *
+ * Node.js and the package manager are dependencies too (deps/runtime.mjs): every place the repository declares them,
+ * read from its tracked files, with Node's releases from nodejs.org and pnpm's and npm's from the registry.
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import {
+	buildRuntimeReport,
+	corepackHash,
+	findRuntimeDeclarations,
+	findRuntimeDowngrades,
+	isRuntimeFile,
+	NODE_INDEX_URL,
+	NODE_SCHEDULE_URL,
+	parseNodeIndex,
+	parseNodeSchedule,
+	planRuntimeEdits,
+	RUNTIME_FAMILIES,
+} from './runtime.mjs'
 
 const DEP_SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies']
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org/'
@@ -312,8 +328,12 @@ function majorFamilies(members) {
 		.sort((a, b) => String(a.released).localeCompare(String(b.released)) || a.title.localeCompare(b.title))
 }
 
+/** An advisory's severity, or `high` for a security fix named another way (a Node security release). */
 function severityRank(severity) {
-	return severity ? SEVERITIES.indexOf(severity) : -1
+	if (!severity) {
+		return -1
+	}
+	return SEVERITIES.includes(severity) ? SEVERITIES.indexOf(severity) : SEVERITIES.indexOf('high')
 }
 
 /**
@@ -379,20 +399,52 @@ export function buildReport(rows, packuments, audit, { now, minAgeDays = DEFAULT
 	return { updates, majors: majorFamilies(members), held }
 }
 
+/** The package report and the runtime report as one, in the same orders buildReport gives. */
+export function mergeReports(packages, runtime) {
+	const updates = [...runtime.updates, ...packages.updates].sort(
+		(a, b) =>
+			severityRank(b.security) - severityRank(a.security) ||
+			a.name.localeCompare(b.name) ||
+			String(a.current).localeCompare(String(b.current)),
+	)
+	const majors = [...packages.majors, ...runtime.majors].sort(
+		(a, b) => String(a.released).localeCompare(String(b.released)) || a.title.localeCompare(b.title),
+	)
+	const held = [...packages.held, ...runtime.held].sort((a, b) => a.name.localeCompare(b.name))
+	return { updates, majors, held }
+}
+
 function pairsOf(rows) {
 	return [...new Set(rows.map(row => `${row.name}@${row.target}`))].join(' ')
 }
 
-/** The apply lines, in the order a bump is made: advisories, then patches, then minors, each its own command. */
+/**
+ * The apply lines, in the order a bump is made: advisories, then patches, then minors, then floating runtime
+ * declarations pinned to an exact release, each its own command.
+ */
 function applySteps(updates) {
 	const groups = [
 		['Security', updates.filter(row => row.security)],
 		['Patch', updates.filter(row => !row.security && row.level === 'patch')],
 		['Minor', updates.filter(row => !row.security && row.level === 'minor')],
+		['Pin', updates.filter(row => !row.security && row.level === 'pin')],
 	]
+	// A pair an earlier group already moves is left out of a later one: one apply of `node@26.12.1` moves every
+	// declaration on that major, the exact ones and the floating ones.
+	const taken = new Set()
 	return groups
+		.map(([label, rows]) => [label, rows.filter(row => !taken.has(`${row.name}@${row.target}`))])
 		.filter(([, rows]) => rows.length > 0)
-		.map(([label, rows]) => `${label}: \`mise run os:deps:apply ${pairsOf(rows)}\``)
+		.map(([label, rows]) => {
+			for (const row of rows) {
+				taken.add(`${row.name}@${row.target}`)
+			}
+			return `${label}: \`mise run os:deps:apply ${pairsOf(rows)}\``
+		})
+}
+
+function noteOf(row) {
+	return [row.zeroMinor ? '0.x minor: may break' : '', row.note ?? ''].filter(Boolean).join('; ')
 }
 
 function updatesSection(updates, leftOut) {
@@ -408,7 +460,7 @@ function updatesSection(updates, leftOut) {
 		'| --- | --- | --- | --- | --- | --- |',
 		...updates.map(
 			row =>
-				`| \`${row.name}\` | ${row.current} | ${row.target} | ${row.level} | ${row.security ?? ''} | ${row.zeroMinor ? '0.x minor: may break' : ''} |`,
+				`| \`${row.name}\` | ${row.current} | ${row.target} | ${row.level} | ${row.security ?? ''} | ${noteOf(row)} |`,
 		),
 		'',
 		'Apply in this order, running the checks after each group:',
@@ -428,6 +480,9 @@ function majorsSection(majors, leftOut) {
 	const lines = ['## Majors']
 	for (const family of majors) {
 		lines.push('', `### ${family.title}`, '')
+		if (family.security) {
+			lines.push(family.security)
+		}
 		for (const member of family.packages) {
 			const where = [...new Set(member.importers)].join(', ')
 			lines.push(
@@ -462,7 +517,8 @@ export function renderReport(
 	report,
 	{ audit = 'ok', minAgeDays = DEFAULT_MIN_AGE_DAYS, limit = REPORT_LIMIT, manager = 'pnpm' } = {},
 ) {
-	const security = report.updates.filter(row => row.security).length
+	const security =
+		report.updates.filter(row => row.security).length + report.majors.filter(family => family.security).length
 	const head = [
 		`updates: ${report.updates.length} security: ${security} majors: ${report.majors.length} held: ${report.held.length}`,
 		`package manager: ${manager}, cooldown: ${minAgeDays} day(s), audit: ${audit}`,
@@ -766,6 +822,110 @@ async function fetchPackuments(registryFor, names, concurrency = 8) {
 	return packuments
 }
 
+/** A JSON document from `url`, after a few tries a little apart, or a ScanError naming what it was for. */
+export async function fetchJson(url, what, { attempts = 3, fetchFn = fetch, wait = sleep, init = {} } = {}) {
+	let last = ''
+	for (let attempt = 0; attempt < attempts; attempt += 1) {
+		if (attempt > 0) {
+			await wait(500 * 2 ** attempt)
+		}
+		try {
+			const response = await fetchFn(url, { headers: { accept: 'application/json' }, ...init })
+			if (response.ok) {
+				return await response.json()
+			}
+			last = `HTTP ${response.status}`
+		} catch (error) {
+			last = error instanceof Error ? error.message : String(error)
+		}
+	}
+	throw new ScanError(`${what} did not answer (${url}: ${last})`)
+}
+
+/** The tracked files that can declare a runtime, with their texts: `git ls-files`, else a walk without node_modules. */
+function readRuntimeFiles(root) {
+	const listed = spawnSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
+	const paths =
+		listed.status === 0
+			? listed.stdout.split('\0').filter(Boolean)
+			: walk(root, '').filter(path => !path.startsWith('.git/'))
+	return paths
+		.filter(isRuntimeFile)
+		.filter(path => existsSync(join(root, path)))
+		.map(path => ({ path, text: readFileSync(join(root, path), 'utf8') }))
+}
+
+function walk(root, at) {
+	const found = []
+	for (const entry of readdirSync(join(root, at), { withFileTypes: true })) {
+		const path = at ? `${at}/${entry.name}` : entry.name
+		if (entry.isDirectory()) {
+			if (entry.name !== 'node_modules' && entry.name !== '.git') {
+				found.push(...walk(root, path))
+			}
+		} else {
+			found.push(path)
+		}
+	}
+	return found
+}
+
+/**
+ * Advisories for pnpm and npm, which no lockfile lists, from the registry's bulk advisory endpoint: name to
+ * `[{ title, url, severity, vulnerable_versions }]`, or null when the registry did not answer (said in the report,
+ * never passed off as clean).
+ */
+async function fetchRuntimeAdvisories(registry, versionsByName, fetchFn = fetch) {
+	if (versionsByName.size === 0) {
+		return new Map()
+	}
+	try {
+		const body = JSON.stringify(Object.fromEntries(versionsByName))
+		const data = await fetchJson(`${registry}-/npm/v1/security/advisories/bulk`, 'the advisory endpoint', {
+			fetchFn,
+			init: { method: 'POST', body, headers: { accept: 'application/json', 'content-type': 'application/json' } },
+		})
+		return new Map(Object.entries(data ?? {}).map(([name, list]) => [name, Array.isArray(list) ? list : []]))
+	} catch {
+		return null
+	}
+}
+
+/**
+ * What the runtime half of the report reads, fetched only for the families the repository declares: node's
+ * releases and end-of-life dates, and the registry documents and advisories for pnpm and npm.
+ */
+async function runtimeSources(declarations, registryFor) {
+	const families = new Set(declarations.filter(entry => !entry.held).map(entry => entry.family))
+	const sources = { nodeReleases: null, nodeEnds: new Map(), packuments: new Map(), advisories: new Map(), note: '' }
+	if (families.has('node')) {
+		// A mirror can stand in for either document, for a network that cannot reach them.
+		const indexUrl = process.env.OS_DEPS_NODE_INDEX_URL || NODE_INDEX_URL
+		const scheduleUrl = process.env.OS_DEPS_NODE_SCHEDULE_URL || NODE_SCHEDULE_URL
+		const index = parseNodeIndex(await fetchJson(indexUrl, "nodejs.org's release index"))
+		if (!index) {
+			throw new ScanError(`nodejs.org's release index is not the list it should be (${indexUrl})`)
+		}
+		sources.nodeReleases = index
+		sources.nodeEnds = parseNodeSchedule(await fetchJson(scheduleUrl, "Node's release schedule"))
+	}
+	const managers = RUNTIME_FAMILIES.filter(family => family !== 'node' && families.has(family))
+	for (const name of managers) {
+		sources.packuments.set(name, await fetchPackument(registryFor(name), name))
+	}
+	const versions = new Map(
+		managers
+			.filter(name => sources.packuments.get(name) && !sources.packuments.get(name).held)
+			.map(name => [name, Object.keys(sources.packuments.get(name).versions)]),
+	)
+	const advisories = await fetchRuntimeAdvisories(registryFor(''), versions)
+	sources.advisories = advisories ?? new Map()
+	if (managers.length > 0) {
+		sources.note = advisories ? ', runtime advisories: ok' : ', runtime advisories: unavailable'
+	}
+	return sources
+}
+
 /** Advisories by package, and how the report describes the audit. A failed audit is said, never passed off as clean. */
 function runAudit(driver, root) {
 	const [command, args] = driver.auditCommand
@@ -794,20 +954,60 @@ async function printReport(root) {
 	const driver = detectDriver(root)
 	const rows = readRows(driver, root)
 	const days = cooldownDays()
-	const packuments = await fetchPackuments(registryResolver(driver, root), new Set(rows.map(row => row.name)))
+	const registryFor = registryResolver(driver, root)
+	const packuments = await fetchPackuments(registryFor, new Set(rows.map(row => row.name)))
 	const { audit, note } = runAudit(driver, root)
-	const result = buildReport(rows, packuments, audit, { now: Date.now(), minAgeDays: days })
-	process.stdout.write(renderReport(result, { audit: note, minAgeDays: days, manager: driver.name }))
+	const now = Date.now()
+	const packages = buildReport(rows, packuments, audit, { now, minAgeDays: days })
+	const declarations = findRuntimeDeclarations(readRuntimeFiles(root))
+	const sources = await runtimeSources(declarations, registryFor)
+	const runtime = buildRuntimeReport(declarations, sources, { now, minAgeDays: days })
+	process.stdout.write(
+		renderReport(mergeReports(packages, runtime), {
+			audit: `${note}${sources.note}`,
+			minAgeDays: days,
+			manager: driver.name,
+		}),
+	)
 }
 
-function apply(root, args) {
-	const major = args.includes('--major')
-	const pairs = parsePairs(args.filter(arg => arg !== '--major'))
-	if (pairs.length === 0) {
-		throw new Error('name at least one name@version pair')
+/**
+ * The corepack integrity suffix for each packageManager move that had one, from the registry's document for that
+ * version. One it cannot fetch is left off: corepack accepts packageManager without one.
+ */
+async function packageManagerHashes(driver, root, pairs, declarations) {
+	const hashes = new Map()
+	let registryFor = null
+	for (const pair of pairs) {
+		const hashed = declarations.some(
+			entry => entry.kind === 'packageManager' && entry.family === pair.name && entry.hash,
+		)
+		if (!hashed || pair.name === 'node') {
+			continue
+		}
+		registryFor ??= registryResolver(driver, root)
+		try {
+			const doc = await fetchJson(
+				`${registryFor(pair.name)}${pair.name}/${pair.version}`,
+				`the registry for ${pair.name}`,
+			)
+			const hash = corepackHash(doc?.dist?.integrity)
+			if (hash) {
+				hashes.set(`${pair.name}@${pair.version}`, hash)
+			}
+		} catch {
+			console.log(`no integrity for ${pair.name}@${pair.version}: packageManager is written without one`)
+		}
 	}
-	const driver = detectDriver(root)
-	const locked = readRows(driver, root)
+	return hashes
+}
+
+/**
+ * The manifest edits that move package `pairs`, and the pairs that did not move: `unmoved` holds those the lockfile
+ * already resolves (a rerun of a group that landed, not a mistake), `lost` those nothing declares lower.
+ */
+function planPackageApply(driver, root, pairs, major) {
+	const locked = pairs.length > 0 ? readRows(driver, root) : []
 	const edits = [...new Set(locked.map(row => row.importer))].map(importer => {
 		const path = join(root, importer, 'package.json')
 		const text = readFileSync(path, 'utf8')
@@ -815,35 +1015,50 @@ function apply(root, args) {
 		return { importer, path, original: text, ...applyPairs(text, pairs, { major }), pinned }
 	})
 	const moved = new Set(edits.flatMap(edit => edit.changed.map(change => change.name)))
-	// A pair the lockfile already resolves is a rerun of a group that landed, not a mistake.
 	const landed = pair => locked.some(row => row.name === pair.name && row.version === pair.version)
 	const unmoved = pairs.filter(pair => !moved.has(pair.name))
-	const lost = unmoved.filter(pair => !landed(pair)).map(pair => `${pair.name}@${pair.version}`)
-	if (lost.length > 0) {
-		throw new Error(
-			`nothing declares a lower version to move for: ${lost.join(' ')}. Each is not declared, or is on another major (a major needs --major). No file was changed.`,
-		)
+	return { edits, moved, unmoved: unmoved.filter(landed), lost: unmoved.filter(pair => !landed(pair)) }
+}
+
+/** The runtime file edits that move `pairs` (node, pnpm, npm), as files to write with what they held before. */
+async function planRuntimeApply(driver, root, pairs, major) {
+	const files = pairs.length > 0 ? readRuntimeFiles(root) : []
+	const declarations = findRuntimeDeclarations(files)
+	const hashes = await packageManagerHashes(driver, root, pairs, declarations)
+	const plan = planRuntimeEdits(files, declarations, pairs, { major, hashes })
+	const writes = plan.edits.map(edit => ({ path: join(root, edit.path), text: edit.text, original: edit.original }))
+	return { ...plan, writes }
+}
+
+function printMoves(runtime, changing) {
+	for (const edit of runtime.edits) {
+		for (const change of edit.changed) {
+			console.log(`${edit.path}:${change.line}: ${change.family} ${change.from} -> ${change.to}`)
+		}
 	}
-	for (const pair of unmoved) {
-		console.log(`already at ${pair.name}@${pair.version}`)
-	}
-	if (moved.size === 0) {
-		return
-	}
-	const changing = edits.filter(row => row.changed.length > 0)
 	for (const edit of changing) {
 		for (const change of edit.changed) {
 			console.log(`${edit.importer}: ${change.name} ${change.from} -> ${change.to}`)
 		}
 	}
-	// An apply lands whole or not at all: whatever goes wrong, every file it touched goes back as it was, so a
-	// retry starts from the same place and a model is never left to read a half-made change.
+}
+
+/**
+ * Writes the runtime files and installs the changed manifests. It lands whole or not at all: whatever goes wrong,
+ * every file it touched goes back as it was, so a retry starts from the same place and a model is never left to
+ * read a half-made change.
+ */
+function landApply(driver, root, edits, changing, runtimeWrites) {
 	const lockPath = join(root, driver.lockfile)
 	const before = [
 		{ path: lockPath, text: readFileSync(lockPath, 'utf8') },
 		...changing.map(edit => ({ path: edit.path, text: edit.original })),
+		...runtimeWrites.map(file => ({ path: file.path, text: file.original })),
 	]
 	try {
+		for (const file of runtimeWrites) {
+			writeFileSync(file.path, file.text)
+		}
 		// `text` keeps each declaration's range operator; `pinned` names the exact target (see the npm driver).
 		driver.install(root, which => {
 			for (const edit of changing) {
@@ -863,6 +1078,46 @@ function apply(root, args) {
 			{ cause: error },
 		)
 	}
+}
+
+async function apply(root, args) {
+	const major = args.includes('--major')
+	const all = parsePairs(args.filter(arg => arg !== '--major'))
+	if (all.length === 0) {
+		throw new Error('name at least one name@version pair')
+	}
+	const driver = detectDriver(root)
+	// Node, pnpm and npm move in the files that declare them; every other pair moves in the manifests.
+	const runtime = await planRuntimeApply(
+		driver,
+		root,
+		all.filter(pair => RUNTIME_FAMILIES.includes(pair.name)),
+		major,
+	)
+	const packages = planPackageApply(
+		driver,
+		root,
+		all.filter(pair => !RUNTIME_FAMILIES.includes(pair.name)),
+		major,
+	)
+	const lost = [...packages.lost, ...runtime.lost].map(pair => `${pair.name}@${pair.version}`)
+	if (lost.length > 0) {
+		throw new Error(
+			`nothing declares a lower version to move for: ${lost.join(' ')}. Each is not declared, or is on another major (a major needs --major). No file was changed.`,
+		)
+	}
+	for (const pair of [...packages.unmoved, ...runtime.already]) {
+		console.log(`already at ${pair.name}@${pair.version}`)
+	}
+	const changing = packages.edits.filter(row => row.changed.length > 0)
+	printMoves(runtime, changing)
+	if (packages.moved.size === 0) {
+		for (const file of runtime.writes) {
+			writeFileSync(file.path, file.text)
+		}
+		return
+	}
+	landApply(driver, root, packages.edits, changing, runtime.writes)
 }
 
 /** What `git` printed for `args` in `root`, or the failure as an Error. */
@@ -901,6 +1156,15 @@ export function mergeBase(root, env = process.env) {
 	return git(root, ['merge-base', baseRef, 'HEAD'])
 }
 
+/** The runtime declarations as they were on commit `sha`. */
+function runtimeDeclarationsAt(root, sha) {
+	const paths = git(root, ['ls-tree', '-r', '-z', '--name-only', sha])
+		.split('\0')
+		.filter(Boolean)
+		.filter(isRuntimeFile)
+	return findRuntimeDeclarations(paths.map(path => ({ path, text: git(root, ['show', `${sha}:${path}`]) })))
+}
+
 function verify(root) {
 	const driver = detectDriver(root)
 	const sha = mergeBase(root)
@@ -909,13 +1173,22 @@ function verify(root) {
 		packageJson: driver.name === 'npm' ? git(root, ['show', `${sha}:package.json`]) : '',
 	})
 	const downgrades = findDowngrades(was, readRows(driver, root))
-	if (downgrades.length > 0) {
-		for (const row of downgrades) {
-			console.error(`downgrade: ${row.importer}: ${row.name} ${row.before} -> ${row.after}`)
-		}
-		throw new Error(`${downgrades.length} direct dependency(ies) resolve lower than on ${sha.slice(0, 9)}`)
+	const runtimeWas = runtimeDeclarationsAt(root, sha)
+	const runtimeDown = findRuntimeDowngrades(runtimeWas, findRuntimeDeclarations(readRuntimeFiles(root)))
+	for (const row of downgrades) {
+		console.error(`downgrade: ${row.importer}: ${row.name} ${row.before} -> ${row.after}`)
 	}
-	console.log(`no downgrades: ${was.length} direct dependencies compared with ${sha.slice(0, 9)}`)
+	for (const row of runtimeDown) {
+		console.error(`downgrade: ${row.file}: ${row.family} ${row.before} -> ${row.after}`)
+	}
+	const total = downgrades.length + runtimeDown.length
+	if (total > 0) {
+		throw new Error(`${total} direct dependency(ies) resolve lower than on ${sha.slice(0, 9)}`)
+	}
+	const pinned = runtimeWas.filter(entry => entry.parsed?.version).length
+	console.log(
+		`no downgrades: ${was.length} direct dependencies and ${pinned} runtime declarations compared with ${sha.slice(0, 9)}`,
+	)
 }
 
 async function main() {
@@ -926,7 +1199,7 @@ async function main() {
 		if (command === 'report') {
 			await printReport(root)
 		} else if (command === 'apply') {
-			apply(root, args)
+			await apply(root, args)
 		} else if (command === 'verify') {
 			verify(root)
 		} else {
