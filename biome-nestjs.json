@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.5.10/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.6.4/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -41,7 +41,10 @@
 				"noUselessStringConcat": "error",
 				"noUselessTernary": "error",
 				"noUselessUndefined": "error",
-				"useDateNow": "error"
+				"useDateNow": "error",
+				"noUnnecessaryTemplateExpression": "error",
+				"useArraySome": "error",
+				"useMathMinMax": "error"
 			},
 			"correctness": {
 				"noUndeclaredVariables": "off",
@@ -49,27 +52,17 @@
 				"noUnusedImports": "error",
 				"noUnusedPrivateClassMembers": "error",
 				"noUnusedVariables": "error",
-				"useHookAtTopLevel": "off"
+				"useHookAtTopLevel": "off",
+				"noPlaywrightMissingAwait": "error"
 			},
 			"nursery": {
 				"noFloatingPromises": "error",
-				"noIdenticalTestTitle": "error",
 				"noMisusedPromises": "error",
 				"noNegationInEqualityCheck": "error",
-				"noPlaywrightForceOption": "error",
-				"noPlaywrightMissingAwait": "error",
-				"noPlaywrightNetworkidle": "error",
-				"noPlaywrightPagePause": "error",
-				"noPlaywrightWaitForSelector": "error",
-				"noPlaywrightWaitForTimeout": "error",
-				"noUnnecessaryTemplateExpression": "error",
 				"noUnsafePlusOperands": "error",
 				"noUselessTypeConversion": "error",
-				"useArraySome": "error",
 				"useExhaustiveSwitchCases": "error",
-				"useImportsFirst": "error",
 				"useIncludes": "error",
-				"useMathMinMax": "error",
 				"useStringStartsEndsWith": "error"
 			},
 			"performance": {
@@ -116,7 +109,9 @@
 				"useSingleVarDeclarator": "error",
 				"useTemplate": "error",
 				"useThrowNewError": "error",
-				"useThrowOnlyError": "error"
+				"useThrowOnlyError": "error",
+				"noPlaywrightWaitForSelector": "error",
+				"useImportsFirst": "error"
 			},
 			"suspicious": {
 				"noAlert": "error",
@@ -139,7 +134,12 @@
 				"noTsIgnore": "error",
 				"noUnsafeDeclarationMerging": "error",
 				"noUnusedExpressions": "error",
-				"noVar": "error"
+				"noVar": "error",
+				"noIdenticalTestTitle": "error",
+				"noPlaywrightForceOption": "error",
+				"noPlaywrightNetworkidle": "error",
+				"noPlaywrightPagePause": "error",
+				"noPlaywrightWaitForTimeout": "error"
 			}
 		}
 	},
