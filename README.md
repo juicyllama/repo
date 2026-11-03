@@ -58,6 +58,9 @@ If you need to make changes or extend this, simply update `turbo.shared.json` an
 
 Were using biomejs for linting and formatting.
 
+The shared configs need Biome 2.6.4 or later, the version this package is tested against. Biome refuses a
+configuration that names a rule it does not know, so keep `@biomejs/biome` within the range in `peerDependencies`.
+
 
 ```ts
 //biome.json
