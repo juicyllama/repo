@@ -142,16 +142,22 @@ export function lockfileImporters(text) {
 	return rows
 }
 
-/** The lines of the lockfile's `importers:` block, which runs to the next top-level key. */
+/**
+ * The lines of every `importers:` block in the lockfile, each running to the next top-level key. pnpm 12 writes two
+ * YAML documents, and the first locks pnpm itself under an `importers` block that holds no dependency section, so
+ * reading only the first block would find nothing.
+ */
 function importersBlock(text) {
-	const lines = text.split(/\r?\n/)
-	const start = lines.findIndex(line => line.startsWith('importers:'))
-	if (start === -1) {
-		return []
+	const block = []
+	let inside = false
+	for (const line of text.split(/\r?\n/)) {
+		if (/^\S/.test(line)) {
+			inside = line.startsWith('importers:')
+		} else if (inside) {
+			block.push(line)
+		}
 	}
-	const rest = lines.slice(start + 1)
-	const end = rest.findIndex(line => /^\S/.test(line))
-	return end === -1 ? rest : rest.slice(0, end)
+	return block
 }
 
 /** Moves the cursor to the key a line opens: a workspace package, one of its blocks, or a dependency in a block. */
