@@ -25,3 +25,13 @@ for (const config of ['biome.json', 'biome-nestjs.json']) {
 		assert.equal($schema, `https://biomejs.dev/schemas/${pinned}/schema.json`)
 	})
 }
+
+// agentic/sync.mjs copies this into every consumer, where `verify` checks it with the shared config.
+it('the scaffolded DEVELOPMENT.md is formatted for the shared config', () => {
+	const { status, stdout, stderr } = spawnSync(
+		process.execPath,
+		[biome, 'format', '--config-path=biome.json', 'agentic/DEVELOPMENT.md'],
+		{ cwd: import.meta.dirname, encoding: 'utf8' },
+	)
+	assert.equal(status, 0, stdout + stderr)
+})
