@@ -132,6 +132,59 @@ describe('lockfileImporters', () => {
 	})
 })
 
+describe('lockfileImporters in a pnpm 12 lockfile', () => {
+	// pnpm 12 writes two YAML documents: the first locks pnpm itself and has an `importers` block of its own.
+	const rows = lockfileImporters(`---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.16.1
+        version: 12.16.1
+
+packages:
+
+  pnpm@12.16.1:
+    resolution: {integrity: sha512-x}
+
+---
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+
+importers:
+
+  .:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 2.6.4
+        version: 2.6.4
+
+  apps/www:
+    devDependencies:
+      serve:
+        specifier: ^14.2.6
+        version: 14.2.6
+
+packages:
+
+  serve@14.2.6:
+    resolution: {integrity: sha512-x}
+`)
+
+	it('reads the project document, not the one that locks pnpm', () => {
+		assert.deepEqual(rows, [
+			{ importer: '.', name: '@biomejs/biome', specifier: '2.6.4', version: '2.6.4' },
+			{ importer: 'apps/www', name: 'serve', specifier: '^14.2.6', version: '14.2.6' },
+		])
+	})
+})
+
 describe('pickTargets', () => {
 	it('offers the newest release in the current major that is past the cooldown', () => {
 		const doc = packument('1.4.0', { '1.2.0': 90, '1.3.0': 10, '1.4.0': 1 })
